@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  coffees   Coffee[]
+
+  @@map("users")
+}
+
+model Roaster {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  coffees   Coffee[]
+
+  @@index([name])
+  @@map("roasters")
+}
+
+model Coffee {
+  id               String            @id @default(cuid())
+  userId           String            @map("user_id")
+  roasterId        String            @map("roaster_id")
+  user             User              @relation(fields: [userId], references: [id])
+  roaster          Roaster?          @relation(fields: [roasterId], references: [id])
+  name             String?
+  roastLevel       RoastLevel        @map("roast_level")
+  origin           String?
+  processingMethod ProcessingMethod? @map("processing_method")
+  elevation        String?
+  variety          String?
+  notes            String?
+  flavorProfile    String?           @map("flavor_profile")
+  rating           Int?
+  price            Decimal?          @db.Decimal(10, 2)
+  weight           Decimal?          @db.Decimal(10, 2)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  cups             Cup[]
+
+  @@index([name])
+  @@index([userId])
+  @@index([roasterId])
+  @@map("coffees")
+}
+
+model Cup {
+  id          String      @id @default(cuid())
+  coffeeId    String      @map("coffee_id")
+  coffee      Coffee?     @relation(fields: [coffeeId], references: [id])
+  rating      Int?
+  notes       String?
+  grams       Decimal?
+  temperature Decimal?
+  time        Decimal?
+  body        String?
+  acidity     String?
+  sweetness   String?
+  bitterness  String?
+  balance     String?
+  aftertaste  String?
+  aroma       String?
+  brewMethod  BrewMethod? @map("brew_method")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([coffeeId])
+  @@map("cups")
+}
+
+enum RoastLevel {
+  LIGHT
+  MEDIUM
+  MEDIUM_DARK
+  DARK
+}
+
+enum ProcessingMethod {
+  WASHED
+  NATURAL
+  HONEY
+  ANAEROBIC
+  OTHER
+}
+
+enum BrewMethod {
+  FILTER
+  ESPRESSO
+  POUR_OVER
+  AEROPRESS
+  CHEMEX
+  V60
+  FRENCH_PRESS
+  MOKA
+  OTHER
+}

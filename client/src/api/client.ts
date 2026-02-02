@@ -1,0 +1,202 @@
+import type {
+  Coffee,
+  Cup,
+  Roaster,
+  CreateCoffeeInput,
+  UpdateCoffeeInput,
+  CreateCupInput,
+  UpdateCupInput,
+  CreateRoasterInput,
+  PaginatedResponse,
+  SingleResponse,
+  CoffeeStats,
+  CoffeeQueryParams,
+} from '@coffee-tracker/shared';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+// =============================================================================
+// AUTH TOKEN MANAGEMENT
+// =============================================================================
+
+// Store for the getToken function from Clerk
+let getTokenFn: (() => Promise<string | null>) | null = null;
+
+/**
+ * Set the getToken function from Clerk's useAuth hook.
+ * This should be called once when the app initializes with Clerk.
+ */
+export function setAuthTokenGetter(fn: () => Promise<string | null>) {
+  getTokenFn = fn;
+}
+
+// =============================================================================
+// API CLIENT
+// =============================================================================
+
+class ApiError extends Error {
+  status: number;
+  
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+async function fetchApi<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  // Get auth token from Clerk if available
+  let authHeaders: Record<string, string> = {};
+  if (getTokenFn) {
+    const token = await getTokenFn();
+    if (token) {
+      authHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+      ...options.headers,
+    },
+    credentials: 'include', // For cookies/auth
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      errorData.message || `HTTP error ${response.status}`
+    );
+  }
+
+  // Handle 204 No Content
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
+// =============================================================================
+// COFFEE API
+// =============================================================================
+
+export const coffeeApi = {
+  getAll: (params?: CoffeeQueryParams): Promise<PaginatedResponse<Coffee>> => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.roastLevel) searchParams.set('roastLevel', params.roastLevel);
+
+    const query = searchParams.toString();
+    return fetchApi(`/coffees${query ? `?${query}` : ''}`);
+  },
+
+  getById: (id: string): Promise<SingleResponse<Coffee>> => {
+    return fetchApi(`/coffees/${id}`);
+  },
+
+  create: (data: CreateCoffeeInput): Promise<SingleResponse<Coffee>> => {
+    return fetchApi('/coffees', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: (id: string, data: UpdateCoffeeInput): Promise<SingleResponse<Coffee>> => {
+    return fetchApi(`/coffees/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: (id: string): Promise<void> => {
+    return fetchApi(`/coffees/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getStats: (): Promise<SingleResponse<CoffeeStats>> => {
+    return fetchApi('/coffees/stats');
+  },
+};
+
+// =============================================================================
+// CUP API
+// =============================================================================
+
+export const cupApi = {
+  getAll: (coffeeId?: string): Promise<PaginatedResponse<Cup>> => {
+    const params = coffeeId ? `?coffeeId=${coffeeId}` : '';
+    return fetchApi(`/cups${params}`);
+  },
+
+  getById: (id: string): Promise<SingleResponse<Cup>> => {
+    return fetchApi(`/cups/${id}`);
+  },
+
+  create: (data: CreateCupInput): Promise<SingleResponse<Cup>> => {
+    return fetchApi('/cups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: (id: string, data: UpdateCupInput): Promise<SingleResponse<Cup>> => {
+    return fetchApi(`/cups/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: (id: string): Promise<void> => {
+    return fetchApi(`/cups/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// =============================================================================
+// ROASTER API
+// =============================================================================
+
+export const roasterApi = {
+  getAll: (): Promise<PaginatedResponse<Roaster>> => {
+    return fetchApi('/roasters');
+  },
+
+  getById: (id: string): Promise<SingleResponse<Roaster>> => {
+    return fetchApi(`/roasters/${id}`);
+  },
+
+  create: (data: CreateRoasterInput): Promise<SingleResponse<Roaster>> => {
+    return fetchApi('/roasters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: (id: string, data: Partial<CreateRoasterInput>): Promise<SingleResponse<Roaster>> => {
+    return fetchApi(`/roasters/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: (id: string): Promise<void> => {
+    return fetchApi(`/roasters/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+export { ApiError };
