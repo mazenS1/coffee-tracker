@@ -154,6 +154,7 @@ export const createCup = async (
   res: Response,
   next: NextFunction
 ) => {
+  console.log('createCup', req.body);
   try {
     const userId = req.dbUser!.id;
     const {

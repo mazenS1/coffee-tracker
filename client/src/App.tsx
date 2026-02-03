@@ -5,7 +5,6 @@ import {
   SignedIn,
   SignedOut,
   SignInButton,
-  SignUpButton,
   UserButton,
 } from "@clerk/clerk-react";
 import { useCoffeeStore } from "./store/coffeeStore";
@@ -67,27 +66,12 @@ function AppContent() {
             exit={{ opacity: 0 }}
           >
             <header className="app-header">
-              <motion.div
-                className="logo"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="logo-icon">
-                  <CoffeeIcon size={32} />
-                </div>
-                <div className="logo-text">
-                  <h1>دفتر القهوة</h1>
-                  <p>سجّل رحلتك مع القهوة المختصة</p>
-                </div>
-              </motion.div>
-
-              <div className="header-actions">
+              <div className="header-leading">
                 <motion.div
                   className="header-stats"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
+                  transition={{ delay: 0.1 }}
                 >
                   <div className="header-stat">
                     <span className="stat-number">{coffees.length}</span>
@@ -98,6 +82,18 @@ function AppContent() {
                     <span className="stat-text">فنجان</span>
                   </div>
                 </motion.div>
+              </div>
+
+              <motion.h1 
+                className="app-title"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                دفتر القهوة
+              </motion.h1>
+
+              <div className="header-trailing">
                 <ThemeToggle />
                 
                 {/* Clerk Auth UI */}
@@ -105,23 +101,20 @@ function AppContent() {
                   className="auth-buttons"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
+                  transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
                     <SignInButton mode="modal">
-                      <button className="auth-button sign-in">تسجيل الدخول</button>
+                      <button className="auth-button sign-in">دخول</button>
                     </SignInButton>
-                    <SignUpButton mode="modal">
-                      <button className="auth-button sign-up">إنشاء حساب</button>
-                    </SignUpButton>
                   </SignedOut>
                   <SignedIn>
                     <UserButton 
                       appearance={{
                         elements: {
                           avatarBox: {
-                            width: 40,
-                            height: 40,
+                            width: 36,
+                            height: 36,
                           },
                         },
                       }}

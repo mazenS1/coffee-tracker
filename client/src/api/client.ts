@@ -13,7 +13,9 @@ import type {
   CoffeeQueryParams,
 } from '@coffee-tracker/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+// Use relative URL to go through Vite's proxy in development
+// This allows the app to work from any device on the network
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // =============================================================================
 // AUTH TOKEN MANAGEMENT
