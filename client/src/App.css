@@ -481,16 +481,11 @@ body {
   border: none;
   background: none;
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  /* IMPORTANT: 16px minimum prevents iOS auto-zoom on focus */
+  font-size: 1rem;
   color: var(--text-primary);
   outline: none;
   min-width: 0;
-}
-
-@media (min-width: 768px) {
-  .search-bar input {
-    font-size: 1rem;
-  }
 }
 
 .search-bar input::placeholder {
@@ -2259,4 +2254,856 @@ body {
 .signed-out-actions {
   display: flex;
   gap: var(--space-md);
+}
+
+/* ==========================================
+   MOBILE NATIVE APP EXPERIENCE
+   ==========================================
+   This section addresses common pain points that make
+   web apps feel less native on mobile devices.
+   ========================================== */
+
+/* 
+ * 1. PREVENT ACCIDENTAL HORIZONTAL SCROLL
+ * Elements overflowing their containers cause unwanted horizontal scroll.
+ * overflow-x: hidden on html/body prevents this while still allowing
+ * vertical scrolling. overflow-x: clip is better (doesn't create new 
+ * stacking context) but has less browser support.
+ */
+html,
+body {
+  overflow-x: hidden;
+  /* Fallback for older browsers */
+  max-width: 100vw;
+}
+
+/* 
+ * 2. OVERSCROLL BEHAVIOR - Prevent "scroll traps" and pull-to-refresh
+ * overscroll-behavior: none prevents:
+ * - Scroll chaining (when you reach the end of a scrollable area, 
+ *   it doesn't scroll the parent)
+ * - Pull-to-refresh on mobile Chrome
+ * - The "rubber band" effect at scroll boundaries
+ */
+html {
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* 
+ * 3. GLOBAL TOUCH OPTIMIZATIONS
+ * touch-action: manipulation removes the 300ms tap delay and 
+ * disables double-tap-to-zoom, making interactions feel instant.
+ * We keep pinch-to-zoom disabled via viewport meta, but this ensures
+ * all touch interactions feel native.
+ */
+* {
+  touch-action: manipulation;
+}
+
+/* 
+ * 4. PREVENT TEXT SELECTION ON UI ELEMENTS
+ * Native apps don't allow selecting button text, labels, etc.
+ * We apply user-select: none to interactive UI elements while
+ * preserving selection on actual content (paragraphs, notes).
+ */
+button,
+label,
+.roast-option,
+.taste-tag,
+.brew-method-option,
+.back-button,
+.coffee-card,
+.card-header,
+.card-meta,
+.roast-badge,
+.origin-badge,
+.stat-number,
+.stat-text,
+.stat-card,
+.header-stat,
+.fab,
+.modal-header,
+.form-actions,
+.count-label,
+.rating-label,
+.cup-card h4,
+.cup-date,
+.cup-params,
+.taste-badge,
+.auth-button,
+.add-roaster-button,
+.cancel-button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Ensure actual content remains selectable */
+.coffee-notes,
+.cup-notes,
+.notes-content,
+p.selectable,
+textarea,
+input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 
+ * 5. PREVENT CALLOUT / CONTEXT MENU ON LONG PRESS
+ * Native apps don't show context menus on long-press of UI elements.
+ */
+button,
+a,
+.coffee-card,
+.roast-option,
+.taste-tag,
+.brew-method-option,
+.fab,
+img {
+  -webkit-touch-callout: none;
+}
+
+/* 
+ * 6. SMOOTH SCROLLING WITH MOMENTUM
+ * -webkit-overflow-scrolling: touch enables native-like
+ * momentum scrolling on older iOS versions.
+ */
+.modal-content,
+.coffee-grid,
+.cups-list {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 
+ * 7. SAFE AREA HANDLING (already partially done in :root)
+ * Ensure content doesn't get hidden behind notches or home indicators.
+ * The viewport meta has viewport-fit=cover, so we need padding.
+ */
+.home {
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
+}
+
+/* 
+ * 8. INPUT ZOOM PREVENTION (iOS)
+ * iOS Safari zooms in on inputs with font-size < 16px.
+ * Ensure all interactive inputs are at least 16px.
+ */
+input,
+select,
+textarea {
+  font-size: max(1rem, 16px);
+}
+
+/* 
+ * 9. PERFORMANCE OPTIMIZATIONS - Reduce Jank
+ * Use 'contain' to isolate layout/paint calculations.
+ * Use 'will-change' sparingly for elements that animate.
+ */
+.coffee-card {
+  contain: content;
+}
+
+.modal-content {
+  contain: layout style;
+}
+
+/* Hint to browser that these will animate */
+.fab {
+  will-change: transform;
+}
+
+.modal-overlay {
+  will-change: opacity;
+}
+
+/* 
+ * 10. CUMULATIVE LAYOUT SHIFT (CLS) PREVENTION
+ * Reserve space for dynamic content to prevent jumps.
+ */
+.coffee-card {
+  /* Minimum height prevents collapse before content loads */
+  min-height: 120px;
+}
+
+.stat-card {
+  /* Fixed minimum height for stats */
+  min-height: 60px;
+}
+
+/* Images should have aspect-ratio or explicit dimensions */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 
+ * 11. SCROLLBAR STYLING (for browsers that support it)
+ * Thin, subtle scrollbars look more native.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 
+ * 12. FOCUS STATES FOR ACCESSIBILITY
+ * Even with zoom disabled, we need clear focus states
+ * for keyboard navigation.
+ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Remove default focus ring but keep :focus-visible */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 
+ * 13. REDUCED MOTION SUPPORT
+ * Respect user's preference for reduced motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 
+ * 14. HIGH CONTRAST MODE SUPPORT
+ * Ensure text remains readable in forced colors mode.
+ */
+@media (forced-colors: active) {
+  .coffee-card,
+  .fab,
+  .roast-option,
+  .taste-tag,
+  .brew-method-option {
+    border: 2px solid currentColor;
+  }
+}
+
+/* 
+ * 15. PRINT STYLES (optional but professional)
+ * Hide interactive elements and optimize for printing.
+ */
+@media print {
+  .fab,
+  .modal-overlay,
+  .auth-button,
+  .back-button,
+  .search-bar {
+    display: none !important;
+  }
+  
+  .coffee-card {
+    break-inside: avoid;
+  }
+}
+
+/* ==========================================
+   CUSTOM AUTH PAGES - Sign In / Sign Up
+   Beautiful RTL Arabic pages with coffee theme
+   ========================================== */
+
+.auth-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+/* Auth page background */
+.auth-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-primary) 100%
+  );
+}
+
+.auth-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a2c17' fill-opacity='1'%3E%3Ccircle cx='40' cy='40' r='6'/%3E%3Ccircle cx='10' cy='10' r='3'/%3E%3Ccircle cx='70' cy='10' r='3'/%3E%3Ccircle cx='10' cy='70' r='3'/%3E%3Ccircle cx='70' cy='70' r='3'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.auth-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.auth-glow-1 {
+  top: -20%;
+  right: -10%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(
+    circle,
+    rgba(212, 165, 116, 0.4) 0%,
+    transparent 70%
+  );
+}
+
+.auth-glow-2 {
+  bottom: -30%;
+  left: -20%;
+  width: 70%;
+  height: 70%;
+  background: radial-gradient(
+    circle,
+    rgba(198, 139, 60, 0.3) 0%,
+    transparent 70%
+  );
+}
+
+/* Dark mode auth background */
+[data-theme="dark"] .auth-background {
+  background: linear-gradient(
+    135deg,
+    #0f0d0b 0%,
+    #1a1614 50%,
+    #0f0d0b 100%
+  );
+}
+
+[data-theme="dark"] .auth-pattern {
+  opacity: 0.02;
+  filter: invert(1);
+}
+
+[data-theme="dark"] .auth-glow-1 {
+  background: radial-gradient(
+    circle,
+    rgba(218, 168, 85, 0.15) 0%,
+    transparent 70%
+  );
+}
+
+[data-theme="dark"] .auth-glow-2 {
+  background: radial-gradient(
+    circle,
+    rgba(198, 139, 60, 0.1) 0%,
+    transparent 70%
+  );
+}
+
+/* Auth container */
+.auth-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Branding section */
+.auth-branding {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.auth-logo {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-crema), var(--color-honey));
+  border-radius: 50%;
+  margin: 0 auto var(--space-lg);
+  color: white;
+  box-shadow: 
+    0 8px 32px rgba(198, 139, 60, 0.35),
+    0 0 0 4px rgba(212, 165, 116, 0.2);
+}
+
+@media (min-width: 768px) {
+  .auth-logo {
+    width: 96px;
+    height: 96px;
+  }
+  
+  .auth-logo svg {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .auth-title {
+    font-size: 2.5rem;
+  }
+}
+
+.auth-subtitle {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text-muted);
+  max-width: 280px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .auth-subtitle {
+    font-size: 1.1rem;
+    max-width: 320px;
+  }
+}
+
+/* Auth card (contains Clerk component) */
+.auth-card {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: 
+    0 8px 32px var(--shadow),
+    0 0 0 1px rgba(212, 165, 116, 0.05);
+  padding: var(--space-xl);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .auth-card {
+    padding: var(--space-2xl);
+    border-radius: 24px;
+  }
+}
+
+/* Dark mode auth card */
+[data-theme="dark"] .auth-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: 
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(218, 168, 85, 0.1);
+}
+
+/* Decorative elements */
+.auth-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.coffee-bean {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--color-medium-roast), var(--color-dark-roast));
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0.08;
+}
+
+.coffee-bean::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 40%;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
+.bean-1 {
+  top: 15%;
+  left: 8%;
+  transform: rotate(-30deg);
+}
+
+.bean-2 {
+  bottom: 20%;
+  right: 10%;
+  width: 45px;
+  height: 45px;
+  transform: rotate(45deg);
+}
+
+@media (min-width: 768px) {
+  .coffee-bean {
+    opacity: 0.1;
+  }
+  
+  .bean-1 {
+    width: 80px;
+    height: 80px;
+    top: 20%;
+    left: 12%;
+  }
+  
+  .bean-2 {
+    width: 60px;
+    height: 60px;
+    bottom: 25%;
+    right: 15%;
+  }
+}
+
+/* Dark mode coffee beans */
+[data-theme="dark"] .coffee-bean {
+  background: linear-gradient(135deg, var(--color-crema), var(--color-honey));
+  opacity: 0.06;
+}
+
+/* Secondary auth button (for sign up link) */
+.secondary-auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) var(--space-lg);
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-normal);
+}
+
+.secondary-auth-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(198, 139, 60, 0.08);
+}
+
+@media (min-width: 768px) {
+  .secondary-auth-button {
+    padding: var(--space-md) var(--space-xl);
+    font-size: 1rem;
+  }
+}
+
+/* Auth button as link (header) */
+a.auth-button {
+  text-decoration: none;
+}
+
+/* Signed out actions - improved layout */
+.signed-out-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: center;
+  width: 100%;
+  max-width: 280px;
+}
+
+@media (min-width: 480px) {
+  .signed-out-actions {
+    flex-direction: row;
+    justify-content: center;
+    max-width: none;
+  }
+}
+
+/* Make the empty-add-button work as a link */
+a.empty-add-button {
+  text-decoration: none;
+}
+
+/* ==========================================
+   CLERK COMPONENT OVERRIDES
+   Additional styling for Clerk elements
+   ========================================== */
+
+/* Override ugly purple default avatar with coffee-themed one */
+.cl-avatarBox .cl-avatarImage[src*="gravatar"],
+.cl-avatarBox .cl-avatarImage[src*="clerk"],
+.cl-avatarBox .cl-avatarImage[src=""],
+.cl-avatarBox:not(:has(.cl-avatarImage[src*="googleusercontent"])):not(:has(.cl-avatarImage[src*="github"])):not(:has(.cl-avatarImage[src*="facebook"])) .cl-avatarImage {
+  opacity: 0;
+}
+
+/* Default avatar fallback - coffee cup silhouette */
+.cl-avatarBox {
+  position: relative;
+  background: linear-gradient(135deg, #d4a574 0%, #c68b3c 100%) !important;
+}
+
+.cl-avatarBox::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 8h1a4 4 0 1 1 0 8h-1'/%3E%3Cpath d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/%3E%3Cline x1='6' x2='6' y1='2' y2='4'/%3E%3Cline x1='10' x2='10' y1='2' y2='4'/%3E%3Cline x1='14' x2='14' y1='2' y2='4'/%3E%3C/svg%3E");
+  background-size: 55%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+/* Hide the fallback when user has a real profile picture */
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"])::after {
+  display: none;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) {
+  background: transparent !important;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) .cl-avatarImage {
+  opacity: 1 !important;
+}
+
+/* Ensure RTL direction for all Clerk components */
+.cl-rootBox,
+.cl-card,
+.cl-main,
+.cl-form,
+.cl-formFieldRow,
+.cl-formButtonPrimary,
+.cl-footerAction,
+.cl-socialButtons,
+.cl-dividerRow,
+.cl-identityPreview,
+.cl-alert,
+.cl-otpCodeField,
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverActions,
+.cl-userProfile-root,
+.cl-navbar,
+.cl-page,
+.cl-profilePage {
+  direction: rtl !important;
+}
+
+/* Fix text alignment for RTL */
+.cl-formFieldLabel,
+.cl-formFieldLabelRow,
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-footerActionText,
+.cl-alertText,
+.cl-identityPreviewText,
+.cl-userButtonPopoverActionButtonText {
+  text-align: right !important;
+}
+
+/* User button popover positioning for RTL */
+.cl-userButtonPopoverCard {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* Fix popover menu alignment */
+.cl-userButtonPopoverMain {
+  direction: rtl !important;
+}
+
+.cl-userButtonPopoverActions {
+  direction: rtl !important;
+  width: 100% !important;
+}
+
+.cl-userButtonPopoverActionButton {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButton__manageAccount,
+.cl-userButtonPopoverActionButton__signOut {
+  flex-direction: row-reverse !important;
+}
+
+.cl-userButtonPopoverActionButtonText {
+  flex: 1 !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButtonIcon {
+  order: -1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* User preview section in popover */
+.cl-userPreview {
+  direction: rtl !important;
+  flex-direction: row-reverse !important;
+}
+
+.cl-userPreviewMainIdentifier {
+  text-align: right !important;
+}
+
+.cl-userPreviewSecondaryIdentifier {
+  text-align: right !important;
+}
+
+/* Fix the popover footer */
+.cl-userButtonPopoverFooter {
+  direction: rtl !important;
+  text-align: center !important;
+}
+
+/* Ensure form inputs are RTL */
+.cl-formFieldInput,
+.cl-input {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Social button icons should stay on the right in RTL */
+.cl-socialButtonsBlockButton {
+  flex-direction: row-reverse !important;
+}
+
+/* Fix password visibility toggle position */
+.cl-formFieldInputShowPasswordButton {
+  left: auto !important;
+  right: 0.75rem !important;
+}
+
+/* Dark mode Clerk overrides */
+[data-theme="dark"] .cl-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .cl-formFieldInput,
+[data-theme="dark"] .cl-input {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .cl-formFieldLabel {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .cl-headerTitle,
+[data-theme="dark"] .cl-headerSubtitle {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .cl-footerActionText {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .cl-dividerLine {
+  background: var(--border) !important;
+}
+
+[data-theme="dark"] .cl-dividerText {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .cl-socialButtonsBlockButton {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .cl-userButtonPopoverCard {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .cl-userButtonPopoverActionButton {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .cl-userButtonPopoverActionButton:hover {
+  background: var(--bg-secondary) !important;
+}
+
+/* Fix navbar in user profile for dark mode */
+[data-theme="dark"] .cl-navbar {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .cl-navbarButton {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .cl-navbarButton:hover {
+  background: rgba(218, 168, 85, 0.1) !important;
+}
+
+[data-theme="dark"] .cl-navbarButton[data-active="true"] {
+  background: rgba(218, 168, 85, 0.15) !important;
+  color: var(--accent) !important;
 }

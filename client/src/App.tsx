@@ -4,7 +4,6 @@ import { Plus, Coffee as CoffeeIcon, Search, Loader2 } from "lucide-react";
 import {
   SignedIn,
   SignedOut,
-  SignInButton,
   UserButton,
 } from "@clerk/clerk-react";
 import { useCoffeeStore } from "./store/coffeeStore";
@@ -13,11 +12,30 @@ import { CoffeeDetail } from "./components/CoffeeDetail";
 import { AddCoffeeForm } from "./components/AddCoffeeForm";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { AuthProvider } from "./components/AuthProvider";
+import { SignInPage } from "./components/SignInPage";
+import { SignUpPage } from "./components/SignUpPage";
 import "./App.css";
+
+/**
+ * Simple hash-based routing hook
+ * Used to show sign-in/sign-up pages at #/sign-in and #/sign-up
+ */
+function useHashRoute() {
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  return hash;
+}
 
 function AppContent() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const hash = useHashRoute();
 
   const {
     coffees,
@@ -44,6 +62,17 @@ function AppContent() {
   }, [searchQuery, fetchCoffees]);
 
   const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
+
+  // Handle hash-based routing for auth pages
+  // Show sign-in page at #/sign-in
+  if (hash.startsWith("#/sign-in")) {
+    return <SignInPage />;
+  }
+  
+  // Show sign-up page at #/sign-up
+  if (hash.startsWith("#/sign-up")) {
+    return <SignUpPage />;
+  }
 
   return (
     <div className="app" dir="rtl">
@@ -84,7 +113,7 @@ function AppContent() {
                 </motion.div>
               </div>
 
-              <motion.h1 
+              <motion.h1
                 className="app-title"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -95,8 +124,8 @@ function AppContent() {
 
               <div className="header-trailing">
                 <ThemeToggle />
-                
-                {/* Clerk Auth UI */}
+
+                {/* Clerk Auth UI - Custom themed */}
                 <motion.div
                   className="auth-buttons"
                   initial={{ opacity: 0, y: -20 }}
@@ -104,17 +133,35 @@ function AppContent() {
                   transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
-                    <SignInButton mode="modal">
-                      <button className="auth-button sign-in">دخول</button>
-                    </SignInButton>
+                    <a href="#/sign-in" className="auth-button sign-in">
+                      دخول
+                    </a>
                   </SignedOut>
                   <SignedIn>
-                    <UserButton 
+                    <UserButton
+                      afterSignOutUrl="/"
                       appearance={{
                         elements: {
                           avatarBox: {
                             width: 36,
                             height: 36,
+                            border: '2px solid var(--accent, #c68b3c)',
+                          },
+                          userButtonPopoverCard: {
+                            direction: 'rtl',
+                          },
+                        },
+                      }}
+                      userProfileMode="modal"
+                      userProfileProps={{
+                        appearance: {
+                          elements: {
+                            rootBox: {
+                              direction: 'rtl',
+                            },
+                            card: {
+                              direction: 'rtl',
+                            },
                           },
                         },
                       }}
@@ -233,15 +280,22 @@ function AppContent() {
                 <h2>مرحباً بك في دفتر القهوة</h2>
                 <p>سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة</p>
                 <div className="signed-out-actions">
-                  <SignInButton mode="modal">
-                    <motion.button
-                      className="empty-add-button"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      تسجيل الدخول
-                    </motion.button>
-                  </SignInButton>
+                  <motion.a
+                    href="#/sign-in"
+                    className="empty-add-button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    تسجيل الدخول
+                  </motion.a>
+                  <motion.a
+                    href="#/sign-up"
+                    className="secondary-auth-button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    إنشاء حساب
+                  </motion.a>
                 </div>
               </motion.section>
             </SignedOut>

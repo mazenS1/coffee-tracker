@@ -6,8 +6,30 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 
+      Viewport: Prevent unwanted zoom while maintaining accessibility
+      - width=device-width: Match device width
+      - initial-scale=1: Start at 100% zoom
+      - maximum-scale=1: Prevent pinch-to-zoom on UI (native app behavior)
+      - user-scalable=no: Disable zoom gestures
+      - viewport-fit=cover: Extend into notch/safe areas for edge-to-edge design
+      Note: If you need to support users who require zoom for accessibility,
+      remove maximum-scale and user-scalable restrictions.
+    -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" 
+    />
+    <!-- Theme color for browser chrome (matches app header) -->
     <meta name="theme-color" content="#2d1810" />
+    <!-- Dark mode theme color variant -->
+    <meta name="theme-color" content="#0f0d0b" media="(prefers-color-scheme: dark)" />
+    <!-- PWA-friendly meta tags for native app feel -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Prevent phone number detection (native apps don't auto-link) -->
+    <meta name="format-detection" content="telephone=no" />
     <meta
       name="description"
       content="دفتر القهوة - سجّل رحلتك مع القهوة المختصة"
