@@ -1,4 +1,4 @@
-import type { BrewMethod, Cup } from '../generated/prisma/client';
+import type { BrewMethod, Cup } from '../generated/prisma';
 
 export type { Cup };
 

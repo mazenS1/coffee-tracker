@@ -11,7 +11,8 @@
     "dev": "ts-node src/server.ts",
     "start": "node dist/server.js",
     "watch": "tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prisma": "prisma"
   },
   "dependencies": {
     "@coffee-tracker/shared": "*",

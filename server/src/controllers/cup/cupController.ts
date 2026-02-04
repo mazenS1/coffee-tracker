@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma';
 
 // =============================================================================
 // TYPE DEFINITIONS

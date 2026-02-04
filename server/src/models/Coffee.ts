@@ -1,5 +1,5 @@
 import type { Coffee, ProcessingMethod, RoastLevel
- } from '../generated/prisma/client';
+} from '../generated/prisma';
 
 export type {Coffee}
 

@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -20,6 +21,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   coffees   Coffee[]
+  roasters  Roaster[]
 
   @@map("users")
 }
@@ -29,9 +31,12 @@ model Roaster {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   coffees   Coffee[]
 
   @@index([name])
+  @@index([userId])
   @@map("roasters")
 }
 

@@ -1,4 +1,4 @@
-import type { Roaster } from '../generated/prisma/client';
+import type { Roaster } from '../generated/prisma';
 
 export type { Roaster };
 

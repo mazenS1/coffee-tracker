@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma';
 
 // =============================================================================
 // CONTROLLER GUIDE - Everything you need to know about writing controllers
@@ -52,6 +52,10 @@ interface CoffeeQueryParams {
   roastLevel?: string;
   // Note: userId filter removed - users can only see their own coffees
 }
+
+const buildRoasterVisibilityFilter = (userId: string): Prisma.RoasterWhereInput => ({
+  OR: [{ userId }, { userId: null }],
+});
 
 // -----------------------------------------------------------------------------
 // 2. BASIC CRUD OPERATIONS
@@ -273,12 +277,16 @@ export const createCoffee = async (
 
     // Verify that roaster exists (foreign key check)
     // No need to verify user - they're authenticated
-    const roasterExists = await prisma.roaster.findUnique({ where: { id: roasterId } });
+    const roasterExists = await prisma.roaster.findFirst({
+      where: {
+        AND: [{ id: roasterId }, buildRoasterVisibilityFilter(userId)],
+      },
+    });
 
     if (!roasterExists) {
       return res.status(400).json({
         error: 'Validation error',
-        message: `Roaster with id '${roasterId}' not found`,
+        message: `Roaster with id '${roasterId}' not found or not accessible`,
       });
     }
 
@@ -372,6 +380,21 @@ export const updateCoffee = async (
         error: 'Forbidden',
         message: 'You do not have permission to update this coffee',
       });
+    }
+
+    if (updateData.roasterId) {
+      const roasterExists = await prisma.roaster.findFirst({
+        where: {
+          AND: [{ id: updateData.roasterId }, buildRoasterVisibilityFilter(userId)],
+        },
+      });
+
+      if (!roasterExists) {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: `Roaster with id '${updateData.roasterId}' not found or not accessible`,
+        });
+      }
     }
 
     // Handle Decimal conversion for price and weight
@@ -510,6 +533,21 @@ export const bulkCreateCoffees = async (
       return res.status(400).json({
         error: 'Validation error',
         message: 'Request body must contain a non-empty coffees array',
+      });
+    }
+
+    const roasterIds = Array.from(new Set(coffees.map((coffee) => coffee.roasterId)));
+    const accessibleRoasters = await prisma.roaster.findMany({
+      where: {
+        AND: [{ id: { in: roasterIds } }, buildRoasterVisibilityFilter(userId)],
+      },
+      select: { id: true },
+    });
+
+    if (accessibleRoasters.length !== roasterIds.length) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'One or more roasterIds are invalid or not accessible',
       });
     }
 
