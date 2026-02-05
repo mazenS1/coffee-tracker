@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Thermometer, X, Coffee as CoffeeIcon, Scale } from "lucide-react";
+import {
+  Clock,
+  Thermometer,
+  X,
+  Coffee as CoffeeIcon,
+  Scale,
+  Minus,
+  Plus,
+  ChevronDown,
+} from "lucide-react";
 import { useCoffeeStore } from "../store/coffeeStore";
 import { StarRating } from "./StarRating";
 import type { BrewMethod, CreateCupInput } from "@coffee-tracker/shared";
@@ -11,6 +20,83 @@ interface AddCupFormProps {
   onClose: () => void;
 }
 
+// Compact stepper component for precise numeric input
+interface StepperInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  formatValue: (value: number) => string;
+  presets?: { label: string; value: number }[];
+  icon: React.ReactNode;
+  label: string;
+}
+
+function StepperInput({
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  formatValue,
+  presets,
+  icon,
+  label,
+}: StepperInputProps) {
+  const decrement = () => onChange(Math.max(min, value - step));
+  const increment = () => onChange(Math.min(max, value + step));
+
+  return (
+    <div className="stepper-input compact">
+      <div className="stepper-header">
+        <span className="stepper-icon">{icon}</span>
+        <span className="stepper-label">{label}</span>
+      </div>
+
+      <div className="stepper-controls">
+        <motion.button
+          type="button"
+          className="stepper-btn"
+          onClick={decrement}
+          disabled={value <= min}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Minus size={14} />
+        </motion.button>
+
+        <span className="stepper-value">{formatValue(value)}</span>
+
+        <motion.button
+          type="button"
+          className="stepper-btn"
+          onClick={increment}
+          disabled={value >= max}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Plus size={14} />
+        </motion.button>
+      </div>
+
+      {presets && presets.length > 0 && (
+        <div className="stepper-presets">
+          {presets.map((preset) => (
+            <motion.button
+              key={preset.value}
+              type="button"
+              className={`preset-chip ${value === preset.value ? "active" : ""}`}
+              onClick={() => onChange(preset.value)}
+              whileTap={{ scale: 0.95 }}
+            >
+              {preset.label}
+            </motion.button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
   const { addCup } = useCoffeeStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +104,7 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
     time: 180, // seconds
     grams: 18,
     temperature: 93,
-    brewMethod: "POUR_OVER" as BrewMethod,
+    brewMethod: "V60" as BrewMethod,
     notes: "",
     rating: 0,
   });
@@ -49,7 +135,27 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Brew methods for dropdown
   const brewMethods = Object.keys(BREW_METHOD_LABELS) as BrewMethod[];
+
+  // Quick presets for common values
+  const timePresets = [
+    { label: "2:30", value: 150 },
+    { label: "3:00", value: 180 },
+    { label: "3:30", value: 210 },
+  ];
+
+  const gramsPresets = [
+    { label: "15", value: 15 },
+    { label: "18", value: 18 },
+    { label: "20", value: 20 },
+  ];
+
+  const tempPresets = [
+    { label: "92", value: 92 },
+    { label: "93", value: 93 },
+    { label: "96", value: 96 },
+  ];
 
   return (
     <motion.div
@@ -60,118 +166,92 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
       onClick={onClose}
     >
       <motion.div
-        className="modal-content cup-modal"
-        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 50, scale: 0.9 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="modal-content cup-modal-v2"
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h2>تسجيل فنجان جديد</h2>
+        {/* Drag handle for native feel */}
+        <div className="modal-handle" />
+
+        <div className="modal-header compact">
+          <h2>فنجان جديد</h2>
           <motion.button
             className="close-button"
             onClick={onClose}
-            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <X size={24} />
+            <X size={22} />
           </motion.button>
         </div>
 
-        <form onSubmit={handleSubmit} className="cup-form">
-          <div className="brew-params">
-            <div className="param-card">
-              <div className="param-icon">
-                <Clock size={20} />
-              </div>
-              <label>وقت التخمير</label>
-              <div className="param-value">{formatTime(formData.time)}</div>
-              <input
-                type="range"
-                min={30}
-                max={600}
-                step={5}
-                value={formData.time}
+        <form onSubmit={handleSubmit} className="cup-form-v2">
+          {/* Brew Method - Dropdown */}
+          <div className="form-section-compact">
+            <label className="section-label">طريقة التحضير</label>
+            <div className="select-wrapper">
+              <select
+                value={formData.brewMethod}
                 onChange={(e) =>
-                  setFormData({ ...formData, time: Number(e.target.value) })
+                  setFormData({ ...formData, brewMethod: e.target.value as BrewMethod })
                 }
-              />
-            </div>
-
-            <div className="param-card">
-              <div className="param-icon">
-                <Scale size={20} />
-              </div>
-              <label>كمية البن (جرام)</label>
-              <div className="param-value">{formData.grams}g</div>
-              <input
-                type="range"
-                min={5}
-                max={50}
-                step={0.5}
-                value={formData.grams}
-                onChange={(e) =>
-                  setFormData({ ...formData, grams: Number(e.target.value) })
-                }
-              />
-            </div>
-
-            <div className="param-card">
-              <div className="param-icon">
-                <Thermometer size={20} />
-              </div>
-              <label>درجة الماء</label>
-              <div className="param-value">{formData.temperature}°C</div>
-              <input
-                type="range"
-                min={80}
-                max={100}
-                step={1}
-                value={formData.temperature}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    temperature: Number(e.target.value),
-                  })
-                }
-              />
+                className="form-select"
+              >
+                {brewMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {BREW_METHOD_LABELS[method]}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={18} className="select-icon" />
             </div>
           </div>
 
-          <div className="form-section">
-            <label>طريقة التحضير</label>
-            <div className="brew-method-selector">
-              {brewMethods.map((method) => (
-                <motion.button
-                  key={method}
-                  type="button"
-                  className={`brew-method-option ${formData.brewMethod === method ? "selected" : ""}`}
-                  onClick={() => setFormData({ ...formData, brewMethod: method })}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {BREW_METHOD_LABELS[method]}
-                </motion.button>
-              ))}
-            </div>
-          </div>
+          {/* Brew Parameters - Compact steppers */}
+          <div className="brew-params-v2">
+            <StepperInput
+              value={formData.time}
+              onChange={(time) => setFormData({ ...formData, time })}
+              min={30}
+              max={600}
+              step={15}
+              formatValue={formatTime}
+              presets={timePresets}
+              icon={<Clock size={14} />}
+              label="الوقت"
+            />
 
-          <div className="form-section">
-            <label htmlFor="notes">ملاحظات</label>
-            <textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="أضف ملاحظاتك عن هذا الفنجان..."
-              rows={3}
+            <StepperInput
+              value={formData.grams}
+              onChange={(grams) => setFormData({ ...formData, grams })}
+              min={5}
+              max={50}
+              step={1}
+              formatValue={(v) => `${v}g`}
+              presets={gramsPresets}
+              icon={<Scale size={14} />}
+              label="البن"
+            />
+
+            <StepperInput
+              value={formData.temperature}
+              onChange={(temperature) => setFormData({ ...formData, temperature })}
+              min={80}
+              max={100}
+              step={1}
+              formatValue={(v) => `${v}°`}
+              presets={tempPresets}
+              icon={<Thermometer size={14} />}
+              label="الحرارة"
             />
           </div>
 
-          <div className="form-section rating-section">
-            <label>تقييم الفنجان</label>
+          {/* Rating */}
+          <div className="rating-section-v2">
+            <label className="section-label">التقييم</label>
             <StarRating
               rating={formData.rating}
               onRate={(rating) => setFormData({ ...formData, rating })}
@@ -179,15 +259,30 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             />
           </div>
 
+          {/* Notes - Always visible */}
+          <div className="form-section-compact">
+            <label className="section-label">ملاحظات</label>
+            <textarea
+              className="notes-textarea"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder="أضف ملاحظاتك..."
+              rows={2}
+            />
+          </div>
+
+          {/* Submit */}
           <motion.button
             type="submit"
-            className="submit-button"
+            className="submit-button-v2"
             disabled={isSubmitting}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
           >
             <CoffeeIcon size={20} />
-            {isSubmitting ? "جاري الحفظ..." : "حفظ الفنجان"}
+            {isSubmitting ? "جاري الحفظ..." : "حفظ"}
           </motion.button>
         </form>
       </motion.div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronDown } from "lucide-react";
 import { useCoffeeStore } from "../store/coffeeStore";
 import type { RoastLevel, CreateCoffeeInput } from "@coffee-tracker/shared";
 import { ROAST_LEVEL_LABELS } from "@coffee-tracker/shared";
@@ -20,11 +20,13 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
     origin: string;
     name: string;
     roastLevel: RoastLevel;
+    notes: string;
   }>({
     roasterId: "",
     origin: "",
     name: "",
     roastLevel: "MEDIUM",
+    notes: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +40,7 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
         name: formData.name,
         origin: formData.origin || undefined,
         roastLevel: formData.roastLevel,
+        notes: formData.notes || undefined,
       };
       await addCoffee(coffeeInput);
       await fetchCoffees();
@@ -68,81 +71,93 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
       onClick={onClose}
     >
       <motion.div
-        className="modal-content"
-        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 50, scale: 0.9 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="modal-content coffee-modal-v2"
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h2>إضافة قهوة جديدة</h2>
+        {/* Drag handle for native feel */}
+        <div className="modal-handle" />
+
+        <div className="modal-header compact">
+          <h2>قهوة جديدة</h2>
           <motion.button
             className="close-button"
             onClick={onClose}
-            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <X size={24} />
+            <X size={22} />
           </motion.button>
         </div>
 
-        <form onSubmit={handleSubmit} className="coffee-form">
-          <div className="form-group">
-            <label htmlFor="roaster">المحمصة</label>
+        <form onSubmit={handleSubmit} className="coffee-form-v2">
+          {/* Roaster Selection - Dropdown */}
+          <div className="form-section-v2">
+            <label className="section-label-v2">المحمصة</label>
+            
             {!showNewRoaster ? (
-              <div className="roaster-select-group">
-                <select
-                  id="roaster"
-                  value={formData.roasterId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, roasterId: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">اختر محمصة...</option>
-                  {roasters.map((roaster) => (
-                    <option key={roaster.id} value={roaster.id}>
-                      {roaster.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="roaster-select-row">
+                <div className="select-wrapper flex-grow">
+                  <select
+                    value={formData.roasterId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, roasterId: e.target.value })
+                    }
+                    className="form-select"
+                    required
+                  >
+                    <option value="">اختر محمصة...</option>
+                    {roasters.map((roaster) => (
+                      <option key={roaster.id} value={roaster.id}>
+                        {roaster.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={18} className="select-icon" />
+                </div>
                 <motion.button
                   type="button"
-                  className="add-roaster-button"
+                  className="add-roaster-btn"
                   onClick={() => setShowNewRoaster(true)}
-                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Plus size={16} />
-                  جديدة
+                  <Plus size={18} />
                 </motion.button>
               </div>
             ) : (
-              <div className="new-roaster-input">
+              <div className="new-roaster-input-v2">
                 <input
                   type="text"
                   value={newRoasterName}
                   onChange={(e) => setNewRoasterName(e.target.value)}
-                  placeholder="اسم المحمصة الجديدة"
+                  placeholder="اسم المحمصة"
                   autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddRoaster();
+                    }
+                  }}
                 />
                 <motion.button
                   type="button"
+                  className="action-btn primary"
                   onClick={handleAddRoaster}
-                  whileHover={{ scale: 1.05 }}
+                  disabled={!newRoasterName.trim()}
                   whileTap={{ scale: 0.95 }}
                 >
                   إضافة
                 </motion.button>
                 <motion.button
                   type="button"
-                  className="cancel-button"
+                  className="action-btn"
                   onClick={() => {
                     setShowNewRoaster(false);
                     setNewRoasterName("");
                   }}
-                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   إلغاء
@@ -151,35 +166,40 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
             )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="origin">بلد المنشأ</label>
-            <input
-              type="text"
-              id="origin"
-              value={formData.origin}
-              onChange={(e) =>
-                setFormData({ ...formData, origin: e.target.value })
-              }
-              placeholder="مثال: إثيوبيا، كولومبيا"
-            />
+          {/* Coffee name and origin - inline layout */}
+          <div className="form-row">
+            <div className="form-field flex-2">
+              <label className="section-label-v2" htmlFor="coffeeName">اسم القهوة</label>
+              <input
+                type="text"
+                id="coffeeName"
+                className="text-input"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="يرغاشيف، قوجي..."
+                required
+              />
+            </div>
+            <div className="form-field flex-1">
+              <label className="section-label-v2" htmlFor="origin">المنشأ</label>
+              <input
+                type="text"
+                id="origin"
+                className="text-input"
+                value={formData.origin}
+                onChange={(e) =>
+                  setFormData({ ...formData, origin: e.target.value })
+                }
+                placeholder="إثيوبيا"
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="coffeeName">اسم القهوة</label>
-            <input
-              type="text"
-              id="coffeeName"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              placeholder="مثال: يرغاشيف"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="roastLevel">درجة التحميص</label>
+          {/* Roast level - Visual buttons */}
+          <div className="form-section-v2">
+            <label className="section-label-v2">درجة التحميص</label>
             <div className="roast-selector">
               {roastLevels.map((level) => (
                 <motion.button
@@ -197,15 +217,31 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
             </div>
           </div>
 
+          {/* Notes */}
+          <div className="form-section-v2">
+            <label className="section-label-v2" htmlFor="coffeeNotes">ملاحظات</label>
+            <textarea
+              id="coffeeNotes"
+              className="notes-textarea"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder="ملاحظات عن القهوة..."
+              rows={2}
+            />
+          </div>
+
+          {/* Submit */}
           <motion.button
             type="submit"
-            className="submit-button"
+            className="submit-button-v2"
             disabled={isSubmitting || !formData.roasterId || !formData.name}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
           >
             <Plus size={20} />
-            {isSubmitting ? "جاري الإضافة..." : "إضافة القهوة"}
+            {isSubmitting ? "جاري الإضافة..." : "إضافة"}
           </motion.button>
         </form>
       </motion.div>
