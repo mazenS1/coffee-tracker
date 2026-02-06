@@ -14,7 +14,7 @@ const app = express();
 
 // CORS - Allow cross-origin requests with credentials
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5177',
+  origin: process.env.CLIENT_URL || 'http://localhost:5174',
   credentials: true,
 }));
 
