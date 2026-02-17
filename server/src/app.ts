@@ -47,9 +47,11 @@ app.use(clerkMiddleware());
 // -----------------------------------------------------------------------------
 
 // Health check - no authentication required
-app.get('/health', (req: Request, res: Response) => {
+const healthHandler = (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // -----------------------------------------------------------------------------
 // PROTECTED ROUTES
