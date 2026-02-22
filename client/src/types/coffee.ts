@@ -11,9 +11,7 @@ export interface CoffeeWithUI extends Coffee {
 }
 
 // Extended cup type for UI display
-export interface CupWithUI extends Cup {
-  // Can add any UI-specific extensions here
-}
+export type CupWithUI = Cup;
 
 // Grind sizes for UI selection (these are UI-only, not stored in DB as enum)
 export const GRIND_SIZES = [

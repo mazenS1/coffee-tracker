@@ -53,13 +53,10 @@ async function fetchApi<T>(
   const url = `${API_BASE_URL}${endpoint}`;
 
   // Get auth token from Clerk if available
-  let authHeaders: Record<string, string> = {};
-  if (getTokenFn) {
-    const token = await getTokenFn();
-    if (token) {
-      authHeaders['Authorization'] = `Bearer ${token}`;
-    }
-  }
+  const token = getTokenFn ? await getTokenFn() : null;
+  const authHeaders: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
 
   const response = await fetch(url, {
     ...options,
