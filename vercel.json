@@ -7,5 +7,9 @@
     "api/[...route].ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...route]" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
