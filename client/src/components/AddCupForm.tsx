@@ -22,16 +22,16 @@ interface AddCupFormProps {
 }
 
 const CUP_QUICK_NOTE_OPTIONS = [
-  "Fruity",
-  "Chocolatey",
-  "Classic",
-  "Nutty",
-  "Floral",
-  "Citrusy",
-  "Sweet",
-  "Caramelly",
-  "Clean",
-  "Juicy",
+  { value: "Fruity", label: "فواكهي" },
+  { value: "Chocolatey", label: "شوكولاتي" },
+  { value: "Classic", label: "كلاسيكي" },
+  { value: "Nutty", label: "مكسراتي" },
+  { value: "Floral", label: "زهري" },
+  { value: "Citrusy", label: "حمضي/حمضيات" },
+  { value: "Sweet", label: "حلو" },
+  { value: "Caramelly", label: "كراميل" },
+  { value: "Clean", label: "نظيف" },
+  { value: "Juicy", label: "عصيري" },
 ] as const;
 
 const TASTE_LEVELS = [
@@ -359,18 +359,18 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
             <label className="section-label">ملاحظات سريعة (متعدد)</label>
             <div className="cup-quick-notes-picker">
               {CUP_QUICK_NOTE_OPTIONS.map((note) => {
-                const selected = formData.quickNotes.includes(note);
+                const selected = formData.quickNotes.includes(note.value);
 
                 return (
                   <motion.button
-                    key={note}
+                    key={note.value}
                     type="button"
                     className={`cup-quick-note-btn ${selected ? "selected" : ""}`}
-                    onClick={() => toggleQuickNote(note)}
+                    onClick={() => toggleQuickNote(note.value)}
                     whileTap={{ scale: 0.96 }}
                     aria-pressed={selected}
                   >
-                    {note}
+                    {note.label}
                   </motion.button>
                 );
               })}

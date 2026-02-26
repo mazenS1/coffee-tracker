@@ -22,6 +22,23 @@ interface CoffeeDetailProps {
   onBack: () => void;
 }
 
+const QUICK_NOTE_LABELS: Record<string, string> = {
+  Fruity: "فواكهي",
+  Chocolatey: "شوكولاتي",
+  Classic: "كلاسيكي",
+  Nutty: "مكسراتي",
+  Floral: "زهري",
+  Citrusy: "حمضيات",
+  Sweet: "حلو",
+  Caramelly: "كراميل",
+  Clean: "نظيف",
+  Juicy: "عصيري",
+  "Tea-like": "شبيه بالشاي",
+  Spicy: "بهارات",
+};
+
+const getQuickNoteLabel = (value: string) => QUICK_NOTE_LABELS[value] ?? value;
+
 const getCupTasteBadges = (cup: Cup) =>
   [
     { key: "acidity", label: "الحموضة", value: cup.acidity },
@@ -231,7 +248,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                         key={`coffee-note-${coffee.id}-${note}`}
                         className="taste-badge quick-note-badge"
                       >
-                        {note}
+                        {getQuickNoteLabel(note)}
                       </span>
                     ))}
                   </div>
@@ -353,7 +370,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                                     key={`${cup.id}-note-${note}`}
                                     className="taste-badge quick-note-badge"
                                   >
-                                    {note}
+                                    {getQuickNoteLabel(note)}
                                   </span>
                                 ))}
                               </div>
