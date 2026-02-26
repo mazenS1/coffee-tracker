@@ -12,13 +12,88 @@ import {
 } from "lucide-react";
 import { useCoffeeStore } from "../store/coffeeStore";
 import { StarRating } from "./StarRating";
-import type { BrewMethod, CreateCupInput } from "@coffee-tracker/shared";
+import type { BrewMethod, CreateCupInput, Cup, UpdateCupInput } from "@coffee-tracker/shared";
 import { BREW_METHOD_LABELS } from "@coffee-tracker/shared";
 
 interface AddCupFormProps {
   coffeeId: string;
   onClose: () => void;
+  cup?: Cup;
 }
+
+const CUP_QUICK_NOTE_OPTIONS = [
+  { value: "Fruity", label: "فواكهي" },
+  { value: "Chocolatey", label: "شوكولاتي" },
+  { value: "Classic", label: "كلاسيكي" },
+  { value: "Nutty", label: "مكسراتي" },
+  { value: "Floral", label: "زهري" },
+  { value: "Citrusy", label: "حمضي/حمضيات" },
+  { value: "Sweet", label: "حلو" },
+  { value: "Caramelly", label: "كراميل" },
+  { value: "Clean", label: "نظيف" },
+  { value: "Juicy", label: "عصيري" },
+] as const;
+
+const TASTE_LEVELS = [
+  "منخفض جداً",
+  "منخفض",
+  "متوازن",
+  "مرتفع",
+  "مرتفع جداً",
+] as const;
+
+const TASTE_FIELDS = [
+  { key: "acidity", label: "الحموضة" },
+  { key: "sweetness", label: "الحلاوة" },
+  { key: "bitterness", label: "المرارة" },
+  { key: "balance", label: "التوازن" },
+] as const;
+
+const toNumberOrDefault = (
+  value: number | string | null | undefined,
+  fallback: number
+) => {
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const parseQuickNotes = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const serializeQuickNotes = (notes: string[]) =>
+  notes.map((note) => note.trim()).filter(Boolean).join(", ");
+
+type CupFormState = {
+  time: number;
+  grams: number;
+  temperature: number;
+  brewMethod: BrewMethod;
+  notes: string;
+  quickNotes: string[];
+  rating: number;
+  acidity: string;
+  sweetness: string;
+  bitterness: string;
+  balance: string;
+};
+
+const buildInitialFormData = (cup?: Cup): CupFormState => ({
+  time: toNumberOrDefault(cup?.time, 180),
+  grams: toNumberOrDefault(cup?.grams, 18),
+  temperature: toNumberOrDefault(cup?.temperature, 93),
+  brewMethod: (cup?.brewMethod ?? "V60") as BrewMethod,
+  notes: cup?.notes ?? "",
+  quickNotes: parseQuickNotes(cup?.aroma),
+  rating: cup?.rating ?? 0,
+  acidity: cup?.acidity ?? "",
+  sweetness: cup?.sweetness ?? "",
+  bitterness: cup?.bitterness ?? "",
+  balance: cup?.balance ?? "",
+});
 
 // Compact stepper component for precise numeric input
 interface StepperInputProps {
@@ -97,32 +172,59 @@ function StepperInput({
   );
 }
 
-export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
-  const { addCup } = useCoffeeStore();
+export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
+  const isEditMode = Boolean(cup);
+  const { addCup, updateCup } = useCoffeeStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    time: 180, // seconds
-    grams: 18,
-    temperature: 93,
-    brewMethod: "V60" as BrewMethod,
-    notes: "",
-    rating: 0,
-  });
+  const [formData, setFormData] = useState<CupFormState>(() =>
+    buildInitialFormData(cup)
+  );
+
+  const toggleQuickNote = (note: string) => {
+    setFormData((prev) => {
+      const exists = prev.quickNotes.includes(note);
+
+      return {
+        ...prev,
+        quickNotes: exists
+          ? prev.quickNotes.filter((item) => item !== note)
+          : [...prev.quickNotes, note],
+      };
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
     try {
-      const cupInput: CreateCupInput = {
-        coffeeId,
+      const stringValue = (value: string) =>
+        isEditMode ? value : value || undefined;
+
+      const baseCupData: Omit<CreateCupInput, "coffeeId"> & UpdateCupInput = {
         time: formData.time,
         grams: formData.grams,
         temperature: formData.temperature,
         brewMethod: formData.brewMethod,
-        notes: formData.notes || undefined,
+        notes: stringValue(formData.notes),
+        aroma: stringValue(serializeQuickNotes(formData.quickNotes)),
         rating: formData.rating || undefined,
+        acidity: stringValue(formData.acidity),
+        sweetness: stringValue(formData.sweetness),
+        bitterness: stringValue(formData.bitterness),
+        balance: stringValue(formData.balance),
       };
-      await addCup(cupInput);
+
+      if (cup) {
+        await updateCup(cup.id, baseCupData);
+      } else {
+        const cupInput: CreateCupInput = {
+          coffeeId,
+          ...baseCupData,
+        };
+        await addCup(cupInput);
+      }
+
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -135,10 +237,8 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Brew methods for dropdown
   const brewMethods = Object.keys(BREW_METHOD_LABELS) as BrewMethod[];
 
-  // Quick presets for common values
   const timePresets = [
     { label: "2:30", value: 150 },
     { label: "3:00", value: 180 },
@@ -173,11 +273,10 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle for native feel */}
         <div className="modal-handle" />
 
         <div className="modal-header compact">
-          <h2>فنجان جديد</h2>
+          <h2>{isEditMode ? "تعديل الفنجان" : "فنجان جديد"}</h2>
           <motion.button
             className="close-button"
             onClick={onClose}
@@ -189,7 +288,6 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="cup-form-v2">
-          {/* Brew Method - Dropdown */}
           <div className="form-section-compact">
             <label className="section-label">طريقة التحضير</label>
             <div className="select-wrapper">
@@ -210,7 +308,6 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             </div>
           </div>
 
-          {/* Brew Parameters - Compact steppers */}
           <div className="brew-params-v2">
             <StepperInput
               value={formData.time}
@@ -249,7 +346,6 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             />
           </div>
 
-          {/* Rating */}
           <div className="rating-section-v2">
             <label className="section-label">التقييم</label>
             <StarRating
@@ -259,9 +355,64 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             />
           </div>
 
-          {/* Notes - Always visible */}
           <div className="form-section-compact">
-            <label className="section-label">ملاحظات</label>
+            <label className="section-label">ملاحظات سريعة (متعدد)</label>
+            <div className="cup-quick-notes-picker">
+              {CUP_QUICK_NOTE_OPTIONS.map((note) => {
+                const selected = formData.quickNotes.includes(note.value);
+
+                return (
+                  <motion.button
+                    key={note.value}
+                    type="button"
+                    className={`cup-quick-note-btn ${selected ? "selected" : ""}`}
+                    onClick={() => toggleQuickNote(note.value)}
+                    whileTap={{ scale: 0.96 }}
+                    aria-pressed={selected}
+                  >
+                    {note.label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-section-compact">
+            <label className="section-label">الانطباع الحسي</label>
+            <div className="taste-grid">
+              {TASTE_FIELDS.map((field) => (
+                <div key={field.key} className="taste-select-field">
+                  <label className="section-label" htmlFor={`cup-${field.key}`}>
+                    {field.label}
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id={`cup-${field.key}`}
+                      value={formData[field.key]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [field.key]: e.target.value,
+                        })
+                      }
+                      className="form-select"
+                    >
+                      <option value="">غير محدد</option>
+                      {TASTE_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={18} className="select-icon" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-section-compact">
+            <label className="section-label">ملاحظات إضافية</label>
             <textarea
               className="notes-textarea"
               value={formData.notes}
@@ -273,7 +424,6 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             />
           </div>
 
-          {/* Submit */}
           <motion.button
             type="submit"
             className="submit-button-v2"
@@ -282,7 +432,13 @@ export function AddCupForm({ coffeeId, onClose }: AddCupFormProps) {
             whileTap={{ scale: 0.98 }}
           >
             <CoffeeIcon size={20} />
-            {isSubmitting ? "جاري الحفظ..." : "حفظ"}
+            {isSubmitting
+              ? isEditMode
+                ? "جاري التحديث..."
+                : "جاري الحفظ..."
+              : isEditMode
+                ? "حفظ التعديلات"
+                : "حفظ"}
           </motion.button>
         </form>
       </motion.div>

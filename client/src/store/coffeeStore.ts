@@ -106,15 +106,28 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     set({ isLoadingCoffee: true, error: null });
     try {
       const response = await coffeeApi.getById(id);
-      set({
-        selectedCoffee: response.data,
-        selectedCoffeeId: id,
-        isLoadingCoffee: false,
+      set((state) => {
+        // Ignore stale responses when the user has already navigated elsewhere.
+        if (state.selectedCoffeeId !== id) {
+          return {};
+        }
+
+        return {
+          selectedCoffee: response.data,
+          selectedCoffeeId: id,
+          isLoadingCoffee: false,
+        };
       });
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Failed to fetch coffee',
-        isLoadingCoffee: false,
+      set((state) => {
+        if (state.selectedCoffeeId !== id) {
+          return {};
+        }
+
+        return {
+          error: error instanceof Error ? error.message : 'Failed to fetch coffee',
+          isLoadingCoffee: false,
+        };
       });
     }
   },
@@ -259,9 +272,16 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
 
   setSelectedCoffee: (id) => {
     if (id) {
-      get().fetchCoffeeById(id);
+      const previewCoffee = get().coffees.find((coffee) => coffee.id === id) ?? null;
+      set({
+        selectedCoffeeId: id,
+        selectedCoffee: previewCoffee,
+        isLoadingCoffee: true,
+        error: null,
+      });
+      void get().fetchCoffeeById(id);
     } else {
-      set({ selectedCoffeeId: null, selectedCoffee: null });
+      set({ selectedCoffeeId: null, selectedCoffee: null, isLoadingCoffee: false });
     }
   },
 

@@ -48,6 +48,7 @@ function AppContent() {
 
   const {
     coffees,
+    selectedCoffeeId,
     selectedCoffee,
     isLoading,
     error,
@@ -108,9 +109,10 @@ function AppContent() {
       <div className="background-glow" />
 
       <AnimatePresence mode="wait">
-        {selectedCoffee ? (
+        {selectedCoffeeId ? (
           <CoffeeDetail
-            key="detail"
+            key={`detail-${selectedCoffeeId}`}
+            coffeeId={selectedCoffeeId}
             coffee={selectedCoffee}
             onBack={() => setSelectedCoffee(null)}
           />
