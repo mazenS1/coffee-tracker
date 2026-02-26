@@ -52,6 +52,16 @@ const isRoasterVisibleToUser = (
   userId: string
 ) => roaster.userId === null || roaster.userId === userId;
 
+const parsePositiveInt = (
+  value: string | undefined,
+  fallback: number,
+  max: number
+) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(1, parsed));
+};
+
 // =============================================================================
 // ROASTER CONTROLLER
 // =============================================================================
@@ -66,8 +76,8 @@ export const getAllRoasters = async (
 ) => {
   try {
     const userId = req.dbUser!.id;
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '50', 10);
+    const page = parsePositiveInt(req.query.page, 1, 10_000);
+    const limit = parsePositiveInt(req.query.limit, 50, 100);
     const skip = (page - 1) * limit;
 
     const visibilityFilter = buildRoasterVisibilityFilter(userId);
@@ -222,9 +232,16 @@ export const updateRoaster = async (
       });
     }
 
+    if (name !== undefined && !name.trim()) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Name cannot be empty',
+      });
+    }
+
     const roaster = await prisma.roaster.update({
       where: { id },
-      data: { name: name?.trim() },
+      data: name !== undefined ? { name: name.trim() } : {},
     });
 
     res.status(200).json({ data: roaster });

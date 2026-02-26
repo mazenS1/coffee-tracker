@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import { Prisma } from './generated/prisma';
 import { clerkMiddleware, requireAuth, attachDbUser } from './middleware/auth';
 import coffeeRoutes from './routes/coffeeRoutes';
 import cupRoutes from './routes/cupRoutes';
@@ -74,8 +75,44 @@ app.use((req: Request, res: Response) => {
 
 // Error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
+  const path = `${req.method} ${req.originalUrl}`;
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    console.error(`[Prisma:${err.code}] ${path}`, err.message);
+
+    if (err.code === 'P2022') {
+      return res.status(503).json({
+        error: 'Database schema out of date',
+        message:
+          'The database is missing required columns/tables for this deploy. Run Prisma migrations (prisma migrate deploy) and redeploy.',
+      });
+    }
+
+    if (err.code === 'P1001' || err.code === 'P1008' || err.code === 'P1017') {
+      return res.status(503).json({
+        error: 'Database unavailable',
+        message: 'Database connection failed. Please retry shortly.',
+      });
+    }
+  }
+
+  const status =
+    typeof (err as any).status === 'number'
+      ? (err as any).status
+      : typeof (err as any).statusCode === 'number'
+        ? (err as any).statusCode
+        : 500;
+
+  console.error(`[Error] ${path}`, err.stack || err.message || err);
+
+  if (status >= 500) {
+    return res.status(status).json({ error: 'Internal server error' });
+  }
+
+  res.status(status).json({
+    error: 'Request error',
+    message: err.message || 'Request failed',
+  });
 });
 
 export default app;
