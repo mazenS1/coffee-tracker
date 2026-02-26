@@ -281,7 +281,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       });
       void get().fetchCoffeeById(id);
     } else {
-      set({ selectedCoffeeId: null, selectedCoffee: null });
+      set({ selectedCoffeeId: null, selectedCoffee: null, isLoadingCoffee: false });
     }
   },
 
