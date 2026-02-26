@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Coffee as CoffeeIcon, Search, Loader2 } from "lucide-react";
 import {
   SignedIn,
   SignedOut,
   UserButton,
+  useAuth,
 } from "@clerk/clerk-react";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { CoffeeCard } from "./components/CoffeeCard";
@@ -29,13 +30,21 @@ function useHashRoute() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  return hash;
+  return [hash, setHash] as const;
 }
+
+const isSignInHash = (hash: string) =>
+  hash.startsWith("#/sign-in") || hash.startsWith("#/signin");
+
+const isSignUpHash = (hash: string) =>
+  hash.startsWith("#/sign-up") || hash.startsWith("#/signup");
 
 function AppContent() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const hash = useHashRoute();
+  const [hash, setHash] = useHashRoute();
+  const hasMountedSearch = useRef(false);
+  const { isLoaded, isSignedIn } = useAuth();
 
   const {
     coffees,
@@ -49,28 +58,47 @@ function AppContent() {
 
   // Fetch coffees and roasters on mount
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
     fetchCoffees();
     fetchRoasters();
-  }, [fetchCoffees, fetchRoasters]);
+  }, [fetchCoffees, fetchRoasters, isLoaded, isSignedIn]);
 
   // Search with debounce
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!hasMountedSearch.current) {
+      hasMountedSearch.current = true;
+      return;
+    }
     const timer = setTimeout(() => {
       fetchCoffees({ search: searchQuery || undefined });
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, fetchCoffees]);
+  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
+
+  // If Clerk leaves auth hash in the URL after successful sign-in/up, clear it.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!isSignInHash(hash) && !isSignUpHash(hash)) return;
+
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}`
+    );
+    setHash(window.location.hash);
+  }, [hash, isLoaded, isSignedIn, setHash]);
 
   const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
 
   // Handle hash-based routing for auth pages
   // Show sign-in page at #/sign-in
-  if (hash.startsWith("#/sign-in")) {
+  if (isLoaded && !isSignedIn && isSignInHash(hash)) {
     return <SignInPage />;
   }
   
   // Show sign-up page at #/sign-up
-  if (hash.startsWith("#/sign-up")) {
+  if (isLoaded && !isSignedIn && isSignUpHash(hash)) {
     return <SignUpPage />;
   }
 
