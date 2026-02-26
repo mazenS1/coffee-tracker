@@ -30,6 +30,12 @@ const getCupTasteBadges = (cup: Cup) =>
     { key: "balance", label: "التوازن", value: cup.balance },
   ].filter((item) => item.value);
 
+const getCupQuickNotes = (cup: Cup) =>
+  (cup.aroma ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   const [showAddCup, setShowAddCup] = useState(false);
   const [editingCup, setEditingCup] = useState<Cup | null>(null);
@@ -247,6 +253,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                       .reverse()
                       .map((cup, index) => {
                         const tasteBadges = getCupTasteBadges(cup);
+                        const quickNotes = getCupQuickNotes(cup);
 
                         return (
                           <motion.div
@@ -315,6 +322,19 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                                     className="taste-badge"
                                   >
                                     {badge.label}: {badge.value}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {quickNotes.length > 0 && (
+                              <div className="cup-quick-notes-list">
+                                {quickNotes.map((note) => (
+                                  <span
+                                    key={`${cup.id}-note-${note}`}
+                                    className="taste-badge quick-note-badge"
+                                  >
+                                    {note}
                                   </span>
                                 ))}
                               </div>

@@ -21,6 +21,19 @@ interface AddCupFormProps {
   cup?: Cup;
 }
 
+const CUP_QUICK_NOTE_OPTIONS = [
+  "Fruity",
+  "Chocolatey",
+  "Classic",
+  "Nutty",
+  "Floral",
+  "Citrusy",
+  "Sweet",
+  "Caramelly",
+  "Clean",
+  "Juicy",
+] as const;
+
 const TASTE_LEVELS = [
   "منخفض جداً",
   "منخفض",
@@ -45,12 +58,22 @@ const toNumberOrDefault = (
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseQuickNotes = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const serializeQuickNotes = (notes: string[]) =>
+  notes.map((note) => note.trim()).filter(Boolean).join(", ");
+
 type CupFormState = {
   time: number;
   grams: number;
   temperature: number;
   brewMethod: BrewMethod;
   notes: string;
+  quickNotes: string[];
   rating: number;
   acidity: string;
   sweetness: string;
@@ -64,6 +87,7 @@ const buildInitialFormData = (cup?: Cup): CupFormState => ({
   temperature: toNumberOrDefault(cup?.temperature, 93),
   brewMethod: (cup?.brewMethod ?? "V60") as BrewMethod,
   notes: cup?.notes ?? "",
+  quickNotes: parseQuickNotes(cup?.aroma),
   rating: cup?.rating ?? 0,
   acidity: cup?.acidity ?? "",
   sweetness: cup?.sweetness ?? "",
@@ -156,6 +180,19 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
     buildInitialFormData(cup)
   );
 
+  const toggleQuickNote = (note: string) => {
+    setFormData((prev) => {
+      const exists = prev.quickNotes.includes(note);
+
+      return {
+        ...prev,
+        quickNotes: exists
+          ? prev.quickNotes.filter((item) => item !== note)
+          : [...prev.quickNotes, note],
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -170,6 +207,7 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
         temperature: formData.temperature,
         brewMethod: formData.brewMethod,
         notes: stringValue(formData.notes),
+        aroma: stringValue(serializeQuickNotes(formData.quickNotes)),
         rating: formData.rating || undefined,
         acidity: stringValue(formData.acidity),
         sweetness: stringValue(formData.sweetness),
@@ -318,6 +356,28 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
           </div>
 
           <div className="form-section-compact">
+            <label className="section-label">ملاحظات سريعة (متعدد)</label>
+            <div className="cup-quick-notes-picker">
+              {CUP_QUICK_NOTE_OPTIONS.map((note) => {
+                const selected = formData.quickNotes.includes(note);
+
+                return (
+                  <motion.button
+                    key={note}
+                    type="button"
+                    className={`cup-quick-note-btn ${selected ? "selected" : ""}`}
+                    onClick={() => toggleQuickNote(note)}
+                    whileTap={{ scale: 0.96 }}
+                    aria-pressed={selected}
+                  >
+                    {note}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-section-compact">
             <label className="section-label">الانطباع الحسي</label>
             <div className="taste-grid">
               {TASTE_FIELDS.map((field) => (
@@ -352,7 +412,7 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
           </div>
 
           <div className="form-section-compact">
-            <label className="section-label">ملاحظات</label>
+            <label className="section-label">ملاحظات إضافية</label>
             <textarea
               className="notes-textarea"
               value={formData.notes}
@@ -385,4 +445,3 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
     </motion.div>
   );
 }
-
