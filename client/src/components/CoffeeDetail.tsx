@@ -36,6 +36,12 @@ const getCupQuickNotes = (cup: Cup) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const getCoffeeQuickNotes = (coffee: Coffee) =>
+  (coffee.flavorProfile ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   const [showAddCup, setShowAddCup] = useState(false);
   const [editingCup, setEditingCup] = useState<Cup | null>(null);
@@ -105,6 +111,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   }
 
   const cups = coffee?.cups || [];
+  const coffeeQuickNotes = coffee ? getCoffeeQuickNotes(coffee) : [];
   const averageRating =
     cups.length > 0
       ? cups.reduce((acc, cup) => acc + (cup.rating || 0), 0) / cups.length
@@ -214,10 +221,22 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
               </div>
             </div>
 
-            {coffee.notes && (
+            {(coffee.notes || coffeeQuickNotes.length > 0) && (
               <section className="coffee-notes-card">
                 <h2>ملاحظات القهوة</h2>
-                <p>{coffee.notes}</p>
+                {coffeeQuickNotes.length > 0 && (
+                  <div className="cup-quick-notes-list">
+                    {coffeeQuickNotes.map((note) => (
+                      <span
+                        key={`coffee-note-${coffee.id}-${note}`}
+                        className="taste-badge quick-note-badge"
+                      >
+                        {note}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {coffee.notes && <p>{coffee.notes}</p>}
               </section>
             )}
 

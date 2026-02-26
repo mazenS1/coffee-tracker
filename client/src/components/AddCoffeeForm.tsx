@@ -9,6 +9,22 @@ interface AddCoffeeFormProps {
   onClose: () => void;
 }
 
+const COFFEE_QUICK_NOTE_OPTIONS = [
+  "Fruity",
+  "Chocolatey",
+  "Classic",
+  "Nutty",
+  "Floral",
+  "Citrusy",
+  "Sweet",
+  "Caramelly",
+  "Tea-like",
+  "Spicy",
+] as const;
+
+const serializeQuickNotes = (notes: string[]) =>
+  notes.map((note) => note.trim()).filter(Boolean).join(", ");
+
 export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
   const { addCoffee, addRoaster, roasters, fetchCoffees } = useCoffeeStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,14 +36,29 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
     origin: string;
     name: string;
     roastLevel: RoastLevel;
+    quickNotes: string[];
     notes: string;
   }>({
     roasterId: "",
     origin: "",
     name: "",
     roastLevel: "MEDIUM",
+    quickNotes: [],
     notes: "",
   });
+
+  const toggleQuickNote = (note: string) => {
+    setFormData((prev) => {
+      const exists = prev.quickNotes.includes(note);
+
+      return {
+        ...prev,
+        quickNotes: exists
+          ? prev.quickNotes.filter((item) => item !== note)
+          : [...prev.quickNotes, note],
+      };
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +71,7 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
         name: formData.name,
         origin: formData.origin || undefined,
         roastLevel: formData.roastLevel,
+        flavorProfile: serializeQuickNotes(formData.quickNotes) || undefined,
         notes: formData.notes || undefined,
       };
       await addCoffee(coffeeInput);
@@ -219,7 +251,29 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
 
           {/* Notes */}
           <div className="form-section-v2">
-            <label className="section-label-v2" htmlFor="coffeeNotes">ملاحظات</label>
+            <label className="section-label-v2">ملاحظات سريعة (متعدد)</label>
+            <div className="cup-quick-notes-picker">
+              {COFFEE_QUICK_NOTE_OPTIONS.map((note) => {
+                const selected = formData.quickNotes.includes(note);
+
+                return (
+                  <motion.button
+                    key={note}
+                    type="button"
+                    className={`cup-quick-note-btn ${selected ? "selected" : ""}`}
+                    onClick={() => toggleQuickNote(note)}
+                    whileTap={{ scale: 0.96 }}
+                    aria-pressed={selected}
+                  >
+                    {note}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-section-v2">
+            <label className="section-label-v2" htmlFor="coffeeNotes">ملاحظات إضافية</label>
             <textarea
               id="coffeeNotes"
               className="notes-textarea"
