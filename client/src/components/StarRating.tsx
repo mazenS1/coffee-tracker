@@ -23,13 +23,14 @@ export function StarRating({
   const iconSize = sizes[size];
 
   return (
-    <div className="star-rating">
+    <div className="star-rating" dir="ltr">
       {[1, 2, 3, 4, 5].map((star) => (
         <motion.button
           key={star}
           type="button"
           className={`star-button ${star <= rating ? "filled" : ""} ${readonly ? "readonly" : ""}`}
           onClick={() => !readonly && onRate?.(star)}
+          aria-label={readonly ? `تقييم ${rating} من 5` : `اختيار ${star} من 5`}
           whileHover={!readonly ? { scale: 1.2 } : {}}
           whileTap={!readonly ? { scale: 0.9 } : {}}
           disabled={readonly}
