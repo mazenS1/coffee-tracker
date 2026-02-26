@@ -574,6 +574,10 @@ body {
   padding: var(--space-md);
 }
 
+[dir="rtl"] .card-content {
+  text-align: right;
+}
+
 @media (min-width: 768px) {
   .card-content {
     padding: var(--space-lg);
@@ -651,6 +655,10 @@ body {
   color: var(--text-secondary);
 }
 
+[dir="rtl"] .meta-item {
+  justify-content: flex-start;
+}
+
 @media (min-width: 768px) {
   .meta-item {
     font-size: 0.875rem;
@@ -670,6 +678,10 @@ body {
   align-items: center;
   padding-top: var(--space-sm);
   border-top: 1px solid var(--border);
+}
+
+[dir="rtl"] .card-footer {
+  direction: rtl;
 }
 
 @media (min-width: 768px) {
