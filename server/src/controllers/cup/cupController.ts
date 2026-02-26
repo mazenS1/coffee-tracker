@@ -31,6 +31,16 @@ interface CupQueryParams {
   coffeeId?: string;
 }
 
+const parsePositiveInt = (
+  value: string | undefined,
+  fallback: number,
+  max: number
+) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(1, parsed));
+};
+
 // =============================================================================
 // CUP CONTROLLER
 // =============================================================================
@@ -45,8 +55,8 @@ export const getAllCups = async (
 ) => {
   try {
     const userId = req.dbUser!.id;
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '20', 10);
+    const page = parsePositiveInt(req.query.page, 1, 10_000);
+    const limit = parsePositiveInt(req.query.limit, 20, 100);
     const skip = (page - 1) * limit;
 
     // Build where clause - only cups from user's coffees
@@ -154,7 +164,6 @@ export const createCup = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log('createCup', req.body);
   try {
     const userId = req.dbUser!.id;
     const {
@@ -213,9 +222,9 @@ export const createCup = async (
         coffeeId,
         rating,
         notes,
-        grams: grams ? new Prisma.Decimal(grams) : undefined,
-        temperature: temperature ? new Prisma.Decimal(temperature) : undefined,
-        time: time ? new Prisma.Decimal(time) : undefined,
+        grams: grams !== undefined ? new Prisma.Decimal(grams) : undefined,
+        temperature: temperature !== undefined ? new Prisma.Decimal(temperature) : undefined,
+        time: time !== undefined ? new Prisma.Decimal(time) : undefined,
         body,
         acidity,
         sweetness,

@@ -57,6 +57,16 @@ const buildRoasterVisibilityFilter = (userId: string): Prisma.RoasterWhereInput 
   OR: [{ userId }, { userId: null }],
 });
 
+const parsePositiveInt = (
+  value: string | undefined,
+  fallback: number,
+  max: number
+) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(1, parsed));
+};
+
 // -----------------------------------------------------------------------------
 // 2. BASIC CRUD OPERATIONS
 // -----------------------------------------------------------------------------
@@ -82,8 +92,8 @@ export const getAllCoffees = async (
     const userId = req.dbUser!.id;
 
     // Parse pagination params with defaults
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '10', 10);
+    const page = parsePositiveInt(req.query.page, 1, 10_000);
+    const limit = parsePositiveInt(req.query.limit, 10, 100);
     const skip = (page - 1) * limit;
 
     // Build dynamic where clause for filtering
@@ -304,8 +314,8 @@ export const createCoffee = async (
         notes,
         flavorProfile,
         rating,
-        price: price ? new Prisma.Decimal(price) : undefined,
-        weight: weight ? new Prisma.Decimal(weight) : undefined,
+        price: price !== undefined ? new Prisma.Decimal(price) : undefined,
+        weight: weight !== undefined ? new Prisma.Decimal(weight) : undefined,
       },
       include: {
         roaster: true,
@@ -566,8 +576,8 @@ export const bulkCreateCoffees = async (
           notes: c.notes,
           flavorProfile: c.flavorProfile,
           rating: c.rating,
-          price: c.price ? new Prisma.Decimal(c.price) : undefined,
-          weight: c.weight ? new Prisma.Decimal(c.weight) : undefined,
+          price: c.price !== undefined ? new Prisma.Decimal(c.price) : undefined,
+          weight: c.weight !== undefined ? new Prisma.Decimal(c.weight) : undefined,
         })),
         skipDuplicates: true, // Skip records that would violate unique constraints
       });

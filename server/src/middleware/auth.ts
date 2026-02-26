@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { clerkMiddleware, getAuth, requireAuth as clerkRequireAuth } from '@clerk/express';
+import {
+  clerkClient,
+  clerkMiddleware,
+  getAuth,
+  requireAuth as clerkRequireAuth,
+} from '@clerk/express';
 import prisma from '../lib/prisma';
 
 // =============================================================================
@@ -49,7 +54,7 @@ export const attachDbUser = async (
     const auth = getAuth(req);
     // requireAuth() - Redirects unauthenticated users to sign-in
     const clerkUserId = auth.userId!;
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { clerkId: clerkUserId },
       select: {
         id: true,
@@ -60,9 +65,14 @@ export const attachDbUser = async (
     });
 
     if (!user) {
-      return res.status(404).json({
-        error: 'User not found',
-        message: 'User exists in Clerk but not in database. Please wait for webhook sync or contact support.',
+      user = await provisionDbUserFromClerk(clerkUserId);
+    }
+
+    if (!user) {
+      return res.status(503).json({
+        error: 'User sync pending',
+        message:
+          'User exists in Clerk but is not ready in the database yet. Please retry in a moment.',
       });
     }
 
@@ -70,6 +80,79 @@ export const attachDbUser = async (
     next();
   } catch (error) {
     next(error);
+  }
+};
+
+type ClerkUserEmail = {
+  id?: string;
+  emailAddress?: string;
+  email_address?: string;
+};
+
+const getPrimaryEmail = (clerkUser: any): string | null => {
+  const emails = Array.isArray(clerkUser?.emailAddresses)
+    ? (clerkUser.emailAddresses as ClerkUserEmail[])
+    : [];
+  const primaryId = clerkUser?.primaryEmailAddressId;
+
+  const primaryEmail =
+    emails.find((email) => email.id === primaryId)?.emailAddress ??
+    emails.find((email) => email.id === primaryId)?.email_address ??
+    emails[0]?.emailAddress ??
+    emails[0]?.email_address;
+
+  return typeof primaryEmail === 'string' && primaryEmail.trim()
+    ? primaryEmail.trim()
+    : null;
+};
+
+const getDisplayName = (clerkUser: any): string => {
+  const fullName =
+    (typeof clerkUser?.fullName === 'string' && clerkUser.fullName.trim()) ||
+    [clerkUser?.firstName, clerkUser?.lastName]
+      .filter((part) => typeof part === 'string' && part.trim())
+      .join(' ')
+      .trim();
+
+  return fullName || 'User';
+};
+
+const provisionDbUserFromClerk = async (clerkUserId: string) => {
+  try {
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    const email = getPrimaryEmail(clerkUser);
+
+    if (!email) {
+      console.error('Unable to provision user: Clerk user has no primary email', {
+        clerkUserId,
+      });
+      return null;
+    }
+
+    return prisma.user.upsert({
+      where: { clerkId: clerkUserId },
+      update: {
+        email,
+        name: getDisplayName(clerkUser),
+      },
+      create: {
+        clerkId: clerkUserId,
+        email,
+        name: getDisplayName(clerkUser),
+      },
+      select: {
+        id: true,
+        clerkId: true,
+        name: true,
+        email: true,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to provision database user from Clerk', {
+      clerkUserId,
+      error,
+    });
+    return null;
   }
 };
 
