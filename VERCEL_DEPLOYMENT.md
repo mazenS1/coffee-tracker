@@ -30,10 +30,12 @@ Set these in Vercel for `Production` and `Preview`:
 
 ## 3) Run Prisma migrations
 
-Run migrations from CI or local before/with production rollout:
+`build:vercel` now runs `prisma migrate deploy` automatically during Vercel builds (recommended, fail-fast if schema is out of date).
+
+You can still run migrations manually from CI or local before/with production rollout:
 
 ```bash
-npm run db:migrate
+npm run db:deploy
 ```
 
 `server/prisma.config.ts` prefers `DIRECT_URL` and falls back to `DATABASE_URL`.
