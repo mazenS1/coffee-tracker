@@ -175,17 +175,26 @@ const clerkAuthElements: NonNullable<Appearance["elements"]> = {
   rootBox: {
     width: "100%",
     maxWidth: "100%",
+    marginInline: "auto",
     direction: "rtl",
     fontFamily: "'Tajawal', sans-serif",
   },
+  cardBox: {
+    width: "100%",
+    maxWidth: "100%",
+    marginInline: "auto",
+  },
   card: {
+    width: "100%",
+    maxWidth: "100%",
     background: "transparent",
     boxShadow: "none",
     border: "none",
     padding: "0",
-    margin: "0",
+    margin: "0 auto",
   },
   main: {
+    width: "100%",
     direction: "rtl",
   },
   header: {

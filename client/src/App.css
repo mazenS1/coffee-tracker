@@ -3656,6 +3656,15 @@ a.empty-add-button {
   width: 100%;
 }
 
+.auth-card .cl-rootBox,
+.auth-card .cl-cardBox,
+.auth-card .cl-card,
+.auth-card .cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
 .auth-page .cl-backRow {
   justify-content: flex-end;
 }
