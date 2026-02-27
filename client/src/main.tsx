@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { arSA } from '@clerk/localizations';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.tsx';
 
@@ -92,7 +93,7 @@ const clerkAppearance = {
       borderRadius: '16px',
       boxShadow: '0 8px 32px rgba(26, 15, 10, 0.15)',
     },
-    
+
     // User Button specific
     userButtonAvatarBox: {
       width: '36px',
@@ -130,7 +131,7 @@ const clerkAppearance = {
     userButtonPopoverFooter: {
       borderTop: '1px solid var(--border, rgba(74, 44, 23, 0.1))',
     },
-    
+
     // User Profile modal
     modalContent: {
       background: 'var(--bg-card, #ffffff)',
@@ -196,7 +197,7 @@ const clerkAppearance = {
       fontFamily: "'Tajawal', sans-serif",
       color: 'var(--text-secondary, #4a2c17)',
     },
-    
+
     // Avatar
     avatarBox: {
       border: '2px solid var(--accent, #c68b3c)',
@@ -204,7 +205,7 @@ const clerkAppearance = {
     avatarImage: {
       borderRadius: '50%',
     },
-    
+
     // Badges and tags
     badge: {
       fontFamily: "'Tajawal', sans-serif",
@@ -216,13 +217,15 @@ const clerkAppearance = {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider 
-      publishableKey={PUBLISHABLE_KEY} 
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
       afterSignOutUrl="/"
       localization={arabicLocalization}
       appearance={clerkAppearance}
     >
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </ClerkProvider>
-  </StrictMode>
+  </StrictMode>,
 );
