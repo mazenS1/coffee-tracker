@@ -2968,11 +2968,7 @@ body {
 }
 
 [data-theme="dark"] .auth-button.sign-in {
-  background: linear-gradient(
-    135deg,
-    var(--accent),
-    #b8860b
-  );
+  background: linear-gradient(135deg, var(--accent), #b8860b);
   color: #1a1412;
 }
 
@@ -3310,7 +3306,7 @@ img {
   .search-bar {
     display: none !important;
   }
-  
+
   .coffee-card {
     break-inside: avoid;
   }
@@ -3386,12 +3382,7 @@ img {
 
 /* Dark mode auth background */
 [data-theme="dark"] .auth-background {
-  background: linear-gradient(
-    135deg,
-    #0f0d0b 0%,
-    #1a1614 50%,
-    #0f0d0b 100%
-  );
+  background: linear-gradient(135deg, #0f0d0b 0%, #1a1614 50%, #0f0d0b 100%);
 }
 
 [data-theme="dark"] .auth-pattern {
@@ -3442,7 +3433,7 @@ img {
   border-radius: 50%;
   margin: 0 auto var(--space-lg);
   color: white;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(198, 139, 60, 0.35),
     0 0 0 4px rgba(212, 165, 116, 0.2);
 }
@@ -3452,7 +3443,7 @@ img {
     width: 96px;
     height: 96px;
   }
-  
+
   .auth-logo svg {
     width: 48px;
     height: 48px;
@@ -3496,7 +3487,7 @@ img {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  box-shadow: 
+  box-shadow:
     0 8px 32px var(--shadow),
     0 0 0 1px rgba(212, 165, 116, 0.05);
   padding: var(--space-xl);
@@ -3514,7 +3505,7 @@ img {
 [data-theme="dark"] .auth-card {
   background: var(--bg-card);
   border-color: var(--border);
-  box-shadow: 
+  box-shadow:
     0 8px 40px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(218, 168, 85, 0.1);
 }
@@ -3532,13 +3523,17 @@ img {
   position: absolute;
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, var(--color-medium-roast), var(--color-dark-roast));
+  background: linear-gradient(
+    135deg,
+    var(--color-medium-roast),
+    var(--color-dark-roast)
+  );
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   opacity: 0.08;
 }
 
 .coffee-bean::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 30%;
   left: 50%;
@@ -3567,14 +3562,14 @@ img {
   .coffee-bean {
     opacity: 0.1;
   }
-  
+
   .bean-1 {
     width: 80px;
     height: 80px;
     top: 20%;
     left: 12%;
   }
-  
+
   .bean-2 {
     width: 60px;
     height: 60px;
@@ -3657,7 +3652,10 @@ a.empty-add-button {
 .cl-avatarBox .cl-avatarImage[src*="gravatar"],
 .cl-avatarBox .cl-avatarImage[src*="clerk"],
 .cl-avatarBox .cl-avatarImage[src=""],
-.cl-avatarBox:not(:has(.cl-avatarImage[src*="googleusercontent"])):not(:has(.cl-avatarImage[src*="github"])):not(:has(.cl-avatarImage[src*="facebook"])) .cl-avatarImage {
+.cl-avatarBox:not(:has(.cl-avatarImage[src*="googleusercontent"])):not(
+    :has(.cl-avatarImage[src*="github"])
+  ):not(:has(.cl-avatarImage[src*="facebook"]))
+  .cl-avatarImage {
   opacity: 0;
 }
 
@@ -3668,7 +3666,7 @@ a.empty-add-button {
 }
 
 .cl-avatarBox::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 8h1a4 4 0 1 1 0 8h-1'/%3E%3Cpath d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/%3E%3Cline x1='6' x2='6' y1='2' y2='4'/%3E%3Cline x1='10' x2='10' y1='2' y2='4'/%3E%3Cline x1='14' x2='14' y1='2' y2='4'/%3E%3C/svg%3E");
