@@ -4,6 +4,7 @@ import { Plus, X, ChevronDown } from "lucide-react";
 import { useCoffeeStore } from "../store/coffeeStore";
 import type { RoastLevel, CreateCoffeeInput } from "@coffee-tracker/shared";
 import { ROAST_LEVEL_LABELS } from "@coffee-tracker/shared";
+import { COFFEE_COUNTRIES, getFlagEmoji } from "../data/countries";
 
 interface AddCoffeeFormProps {
   onClose: () => void;
@@ -216,16 +217,24 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
             </div>
             <div className="form-field flex-1">
               <label className="section-label-v2" htmlFor="origin">المنشأ</label>
-              <input
-                type="text"
-                id="origin"
-                className="text-input"
-                value={formData.origin}
-                onChange={(e) =>
-                  setFormData({ ...formData, origin: e.target.value })
-                }
-                placeholder="إثيوبيا"
-              />
+              <div className="select-wrapper">
+                <select
+                  id="origin"
+                  className="form-select"
+                  value={formData.origin}
+                  onChange={(e) =>
+                    setFormData({ ...formData, origin: e.target.value })
+                  }
+                >
+                  <option value="">اختر بلد المنشأ...</option>
+                  {COFFEE_COUNTRIES.map(({ name, code }) => (
+                    <option key={code} value={name}>
+                      {getFlagEmoji(code)} {name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={18} className="select-icon" />
+              </div>
             </div>
           </div>
 
