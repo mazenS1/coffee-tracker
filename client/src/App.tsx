@@ -18,31 +18,62 @@ import { SignUpPage } from "./components/SignUpPage";
 import "./App.css";
 
 /**
- * Simple hash-based routing hook
- * Used to show sign-in/sign-up pages at #/sign-in and #/sign-up
+ * Pathname routing hook for lightweight SPA navigation.
+ * Tracks browser back/forward and history push/replace calls.
  */
-function useHashRoute() {
-  const [hash, setHash] = useState(window.location.hash);
+function usePathRoute() {
+  const [pathname, setPathname] = useState(window.location.pathname);
 
   useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    const handleLocationChange = () => setPathname(window.location.pathname);
+    const emitLocationChange = () =>
+      window.dispatchEvent(new Event("locationchange"));
+
+    window.history.pushState = function (
+      data: unknown,
+      unused: string,
+      url?: string | URL | null,
+    ) {
+      originalPushState.call(this, data, unused, url);
+      emitLocationChange();
+    };
+
+    window.history.replaceState = function (
+      data: unknown,
+      unused: string,
+      url?: string | URL | null,
+    ) {
+      originalReplaceState.call(this, data, unused, url);
+      emitLocationChange();
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+    window.addEventListener("locationchange", handleLocationChange);
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", handleLocationChange);
+      window.removeEventListener("locationchange", handleLocationChange);
+    };
   }, []);
 
-  return [hash, setHash] as const;
+  return pathname;
 }
 
-const isSignInHash = (hash: string) =>
-  hash.startsWith("#/sign-in") || hash.startsWith("#/signin");
+const isSignInPath = (pathname: string) =>
+  pathname.startsWith("/sign-in") || pathname.startsWith("/signin");
 
-const isSignUpHash = (hash: string) =>
-  hash.startsWith("#/sign-up") || hash.startsWith("#/signup");
+const isSignUpPath = (pathname: string) =>
+  pathname.startsWith("/sign-up") || pathname.startsWith("/signup");
 
 function AppContent() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hash, setHash] = useHashRoute();
+  const pathname = usePathRoute();
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -77,29 +108,22 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
 
-  // If Clerk leaves auth hash in the URL after successful sign-in/up, clear it.
+  // Return authenticated users from auth routes to home.
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    if (!isSignInHash(hash) && !isSignUpHash(hash)) return;
+    if (!isSignInPath(pathname) && !isSignUpPath(pathname)) return;
 
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`
-    );
-    setHash(window.location.hash);
-  }, [hash, isLoaded, isSignedIn, setHash]);
+    window.history.replaceState(null, "", "/");
+  }, [isLoaded, isSignedIn, pathname]);
 
   const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
 
-  // Handle hash-based routing for auth pages
-  // Show sign-in page at #/sign-in
-  if (isLoaded && !isSignedIn && isSignInHash(hash)) {
+  // Handle path-based routing for auth pages.
+  if (isLoaded && !isSignedIn && isSignInPath(pathname)) {
     return <SignInPage />;
   }
-  
-  // Show sign-up page at #/sign-up
-  if (isLoaded && !isSignedIn && isSignUpHash(hash)) {
+
+  if (isLoaded && !isSignedIn && isSignUpPath(pathname)) {
     return <SignUpPage />;
   }
 
@@ -163,38 +187,14 @@ function AppContent() {
                   transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
-                    <a href="#/sign-in" className="auth-button sign-in">
+                    <a href="/sign-in" className="auth-button sign-in">
                       دخول
                     </a>
                   </SignedOut>
                   <SignedIn>
                     <UserButton
                       afterSignOutUrl="/"
-                      appearance={{
-                        elements: {
-                          avatarBox: {
-                            width: 36,
-                            height: 36,
-                            border: '2px solid var(--accent, #c68b3c)',
-                          },
-                          userButtonPopoverCard: {
-                            direction: 'rtl',
-                          },
-                        },
-                      }}
                       userProfileMode="modal"
-                      userProfileProps={{
-                        appearance: {
-                          elements: {
-                            rootBox: {
-                              direction: 'rtl',
-                            },
-                            card: {
-                              direction: 'rtl',
-                            },
-                          },
-                        },
-                      }}
                     />
                   </SignedIn>
                 </motion.div>
@@ -311,7 +311,7 @@ function AppContent() {
                 <p>سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة</p>
                 <div className="signed-out-actions">
                   <motion.a
-                    href="#/sign-in"
+                    href="/sign-in"
                     className="empty-add-button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -319,7 +319,7 @@ function AppContent() {
                     تسجيل الدخول
                   </motion.a>
                   <motion.a
-                    href="#/sign-up"
+                    href="/sign-up"
                     className="secondary-auth-button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

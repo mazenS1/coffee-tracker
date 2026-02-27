@@ -3415,7 +3415,7 @@ img {
   max-width: 420px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 /* Branding section */
@@ -3482,9 +3482,10 @@ img {
   }
 }
 
-/* Auth card (contains Clerk component) */
+/* Auth card (contains Clerk component) - tight fit around Clerk form */
 .auth-card {
   width: 100%;
+  min-width: 0;
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
@@ -3493,11 +3494,14 @@ img {
     0 0 0 1px rgba(212, 165, 116, 0.05);
   padding: var(--space-xl);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 @media (min-width: 768px) {
   .auth-card {
-    padding: var(--space-2xl);
+    padding: var(--space-lg);
     border-radius: 24px;
   }
 }
@@ -3648,6 +3652,101 @@ a.empty-add-button {
    CLERK COMPONENT OVERRIDES
    Additional styling for Clerk elements
    ========================================== */
+
+/* Auth flow details (reset password, alternatives, verification states) */
+.auth-page .cl-main,
+.auth-page .cl-form,
+.auth-page .cl-formContainer {
+  width: 100%;
+}
+
+/* Clerk content fills the auth-card - no extra gap */
+.auth-card .cl-rootBox,
+.auth-card .cl-cardBox,
+.auth-card .cl-card,
+.auth-card .cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.auth-page .cl-backRow {
+  justify-content: flex-end;
+}
+
+.auth-page .cl-backLink,
+.auth-page .cl-headerBackLink,
+.auth-page .cl-formResendCodeLink,
+.auth-page .cl-footerActionLink {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.auth-page .cl-backLink:hover,
+.auth-page .cl-headerBackLink:hover,
+.auth-page .cl-formResendCodeLink:hover,
+.auth-page .cl-footerActionLink:hover {
+  color: var(--color-amber);
+}
+
+.auth-page .cl-formButtonPrimary {
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.auth-page .cl-formButtonPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(45, 24, 16, 0.35);
+}
+
+.auth-page .cl-formFieldInput:focus,
+.auth-page .cl-input:focus,
+.auth-page .cl-otpCodeFieldInput:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(198, 139, 60, 0.15) !important;
+}
+
+.auth-page .cl-alternativeMethodsBlockButton,
+.auth-page .cl-socialButtonsBlockButton {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.auth-page .cl-verificationLinkStatusBox,
+.auth-page .cl-alternativeMethods,
+.auth-page .cl-identityPreview {
+  border-radius: 12px;
+}
+
+.auth-page .cl-otpCodeFieldInput {
+  min-width: 2.7rem;
+  height: 3rem;
+}
+
+[data-theme="dark"] .auth-page .cl-formButtonPrimary:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .auth-page .cl-backLink,
+[data-theme="dark"] .auth-page .cl-headerBackLink,
+[data-theme="dark"] .auth-page .cl-formResendCodeLink,
+[data-theme="dark"] .auth-page .cl-footerActionLink {
+  color: var(--accent);
+}
+
+[data-theme="dark"] .auth-page .cl-verificationLinkStatusBox,
+[data-theme="dark"] .auth-page .cl-alternativeMethodsBlockButton,
+[data-theme="dark"] .auth-page .cl-socialButtonsBlockButton {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
 
 /* Override ugly purple default avatar with coffee-themed one */
 .cl-avatarBox .cl-avatarImage[src*="gravatar"],
