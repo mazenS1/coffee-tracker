@@ -152,15 +152,37 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
 
   updateCoffee: async (id, updates) => {
     set({ error: null });
+
+    // Optimistic update: apply immediately so UI feels instant
+    const prev = get();
+    set((state) => ({
+      coffees: state.coffees.map((c) =>
+        c.id === id ? { ...c, ...updates } : c
+      ),
+      selectedCoffee:
+        state.selectedCoffeeId === id && state.selectedCoffee
+          ? { ...state.selectedCoffee, ...updates }
+          : state.selectedCoffee,
+    }));
+
     try {
       const response = await coffeeApi.update(id, updates);
-      set((state) => ({
-        coffees: state.coffees.map((c) => (c.id === id ? response.data : c)),
-        selectedCoffee:
-          state.selectedCoffeeId === id ? response.data : state.selectedCoffee,
-      }));
+      // Merge server response; keep cups (update API doesn't return them)
+      set((state) => {
+        const existingCups = state.selectedCoffee?.cups;
+        return {
+          coffees: state.coffees.map((c) => (c.id === id ? response.data : c)),
+          selectedCoffee:
+            state.selectedCoffeeId === id
+              ? { ...response.data, cups: existingCups ?? [] }
+              : state.selectedCoffee,
+        };
+      });
     } catch (error) {
+      // Revert optimistic update on failure
       set({
+        coffees: prev.coffees,
+        selectedCoffee: prev.selectedCoffee,
         error: error instanceof Error ? error.message : 'Failed to update coffee',
       });
     }

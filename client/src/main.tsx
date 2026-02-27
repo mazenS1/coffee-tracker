@@ -5,6 +5,10 @@ import { arSA } from '@clerk/localizations';
 import './index.css';
 import App from './App.tsx';
 
+document.documentElement.lang = 'ar';
+document.documentElement.dir = 'rtl';
+document.body.dir = 'rtl';
+
 // Clerk publishable key from environment variables
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
