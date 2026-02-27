@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@coffee-tracker/shared': path.resolve(__dirname, '../shared/src/index.ts'),
+      'next/navigation': path.resolve(__dirname, './src/shims/nextNavigation.ts'),
+      'next/compat/router': path.resolve(__dirname, './src/shims/nextCompatRouter.ts'),
     },
   },
   server: {

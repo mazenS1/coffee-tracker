@@ -18,31 +18,62 @@ import { SignUpPage } from "./components/SignUpPage";
 import "./App.css";
 
 /**
- * Simple hash-based routing hook
- * Used to show sign-in/sign-up pages at #/sign-in and #/sign-up
+ * Lightweight route state for auth pages.
+ * Supports both path routes (/sign-in, /sign-up) and old hash links for compatibility.
  */
-function useHashRoute() {
-  const [hash, setHash] = useState(window.location.hash);
+function useAuthRouteState() {
+  const [route, setRoute] = useState(() => ({
+    pathname: window.location.pathname,
+    hash: window.location.hash,
+  }));
 
   useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    const handleRouteChange = () => {
+      setRoute({
+        pathname: window.location.pathname,
+        hash: window.location.hash,
+      });
+    };
+
+    window.addEventListener("hashchange", handleRouteChange);
+    window.addEventListener("popstate", handleRouteChange);
+    return () => {
+      window.removeEventListener("hashchange", handleRouteChange);
+      window.removeEventListener("popstate", handleRouteChange);
+    };
   }, []);
 
-  return [hash, setHash] as const;
+  return [route, setRoute] as const;
 }
 
+const normalizePath = (pathname: string) => {
+  const normalized = pathname.toLowerCase().replace(/\/+$/, "");
+  return normalized || "/";
+};
+
+const isSignInPath = (pathname: string) => {
+  const normalized = normalizePath(pathname);
+  return normalized === "/sign-in" || normalized === "/signin";
+};
+
+const isSignUpPath = (pathname: string) => {
+  const normalized = normalizePath(pathname);
+  return normalized === "/sign-up" || normalized === "/signup";
+};
+
 const isSignInHash = (hash: string) =>
-  hash.startsWith("#/sign-in") || hash.startsWith("#/signin");
+  hash.toLowerCase().startsWith("#/sign-in") ||
+  hash.toLowerCase().startsWith("#/signin");
 
 const isSignUpHash = (hash: string) =>
-  hash.startsWith("#/sign-up") || hash.startsWith("#/signup");
+  hash.toLowerCase().startsWith("#/sign-up") ||
+  hash.toLowerCase().startsWith("#/signup");
 
 function AppContent() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hash, setHash] = useHashRoute();
+  const [route, setRoute] = useAuthRouteState();
+  const { pathname, hash } = route;
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -77,29 +108,32 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
 
-  // If Clerk leaves auth hash in the URL after successful sign-in/up, clear it.
+  // If user is already signed in and lands on auth route, move to home.
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    if (!isSignInHash(hash) && !isSignUpHash(hash)) return;
+    if (
+      !isSignInPath(pathname) &&
+      !isSignUpPath(pathname) &&
+      !isSignInHash(hash) &&
+      !isSignUpHash(hash)
+    ) {
+      return;
+    }
 
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`
-    );
-    setHash(window.location.hash);
-  }, [hash, isLoaded, isSignedIn, setHash]);
+    window.history.replaceState(null, "", "/");
+    setRoute({
+      pathname: window.location.pathname,
+      hash: window.location.hash,
+    });
+  }, [hash, isLoaded, isSignedIn, pathname, setRoute]);
 
   const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
 
-  // Handle hash-based routing for auth pages
-  // Show sign-in page at #/sign-in
-  if (isLoaded && !isSignedIn && isSignInHash(hash)) {
+  if (isLoaded && !isSignedIn && (isSignInPath(pathname) || isSignInHash(hash))) {
     return <SignInPage />;
   }
-  
-  // Show sign-up page at #/sign-up
-  if (isLoaded && !isSignedIn && isSignUpHash(hash)) {
+
+  if (isLoaded && !isSignedIn && (isSignUpPath(pathname) || isSignUpHash(hash))) {
     return <SignUpPage />;
   }
 
@@ -163,7 +197,7 @@ function AppContent() {
                   transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
-                    <a href="#/sign-in" className="auth-button sign-in">
+                    <a href="/sign-in" className="auth-button sign-in">
                       دخول
                     </a>
                   </SignedOut>
@@ -311,7 +345,7 @@ function AppContent() {
                 <p>سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة</p>
                 <div className="signed-out-actions">
                   <motion.a
-                    href="#/sign-in"
+                    href="/sign-in"
                     className="empty-add-button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -319,7 +353,7 @@ function AppContent() {
                     تسجيل الدخول
                   </motion.a>
                   <motion.a
-                    href="#/sign-up"
+                    href="/sign-up"
                     className="secondary-auth-button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
