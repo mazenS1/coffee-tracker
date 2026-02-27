@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
   Thermometer,
@@ -9,6 +9,13 @@ import {
   Minus,
   Plus,
   ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  Flame,
+  Star,
+  Sparkles,
+  Gauge,
+  MessageSquare,
 } from "lucide-react";
 import { useCoffeeStore } from "../store/coffeeStore";
 import { StarRating } from "./StarRating";
@@ -22,32 +29,44 @@ interface AddCupFormProps {
 }
 
 const CUP_QUICK_NOTE_OPTIONS = [
-  { value: "Fruity", label: "فواكهي" },
-  { value: "Chocolatey", label: "شوكولاتي" },
-  { value: "Classic", label: "كلاسيكي" },
-  { value: "Nutty", label: "مكسراتي" },
-  { value: "Floral", label: "زهري" },
-  { value: "Citrusy", label: "حمضي/حمضيات" },
-  { value: "Sweet", label: "حلو" },
-  { value: "Caramelly", label: "كراميل" },
-  { value: "Clean", label: "نظيف" },
-  { value: "Juicy", label: "عصيري" },
+  { value: "Fruity", label: "فواكهي", emoji: "🍎" },
+  { value: "Chocolatey", label: "شوكولاتي", emoji: "🍫" },
+  { value: "Classic", label: "كلاسيكي", emoji: "☕" },
+  { value: "Nutty", label: "مكسراتي", emoji: "🥜" },
+  { value: "Floral", label: "زهري", emoji: "🌸" },
+  { value: "Citrusy", label: "حمضيات", emoji: "🍋" },
+  { value: "Sweet", label: "حلو", emoji: "🍯" },
+  { value: "Caramelly", label: "كراميل", emoji: "🍮" },
+  { value: "Clean", label: "نظيف", emoji: "💧" },
+  { value: "Juicy", label: "عصيري", emoji: "🍇" },
 ] as const;
 
 const TASTE_LEVELS = [
-  "منخفض جداً",
-  "منخفض",
-  "متوازن",
-  "مرتفع",
-  "مرتفع جداً",
+  { value: "منخفض جداً", short: "منخفض جداً" },
+  { value: "منخفض", short: "منخفض" },
+  { value: "متوازن", short: "متوازن" },
+  { value: "مرتفع", short: "مرتفع" },
+  { value: "مرتفع جداً", short: "مرتفع جداً" },
 ] as const;
 
 const TASTE_FIELDS = [
-  { key: "acidity", label: "الحموضة" },
-  { key: "sweetness", label: "الحلاوة" },
-  { key: "bitterness", label: "المرارة" },
-  { key: "balance", label: "التوازن" },
+  { key: "acidity", label: "الحموضة", emoji: "🍋" },
+  { key: "sweetness", label: "الحلاوة", emoji: "🍯" },
+  { key: "bitterness", label: "المرارة", emoji: "🍵" },
+  { key: "balance", label: "التوازن", emoji: "⚖️" },
 ] as const;
+
+const BREW_METHOD_ICONS: Record<BrewMethod, string> = {
+  V60: "☕",
+  CHEMEX: "🫖",
+  AEROPRESS: "🔄",
+  FRENCH_PRESS: "🫖",
+  ESPRESSO: "☕",
+  MOKA: "🫖",
+  FILTER: "💧",
+  POUR_OVER: "💧",
+  OTHER: "☕",
+};
 
 const toNumberOrDefault = (
   value: number | string | null | undefined,
@@ -95,7 +114,7 @@ const buildInitialFormData = (cup?: Cup): CupFormState => ({
   balance: cup?.balance ?? "",
 });
 
-// Compact stepper component for precise numeric input
+// Enhanced stepper component with larger touch targets
 interface StepperInputProps {
   value: number;
   onChange: (value: number) => void;
@@ -123,43 +142,43 @@ function StepperInput({
   const increment = () => onChange(Math.min(max, value + step));
 
   return (
-    <div className="stepper-input compact">
-      <div className="stepper-header">
-        <span className="stepper-icon">{icon}</span>
-        <span className="stepper-label">{label}</span>
+    <div className="stepper-input-v3">
+      <div className="stepper-header-v3">
+        <span className="stepper-icon-v3">{icon}</span>
+        <span className="stepper-label-v3">{label}</span>
       </div>
 
-      <div className="stepper-controls">
+      <div className="stepper-controls-v3">
         <motion.button
           type="button"
-          className="stepper-btn"
+          className="stepper-btn-v3"
           onClick={decrement}
           disabled={value <= min}
           whileTap={{ scale: 0.9 }}
         >
-          <Minus size={14} />
+          <Minus size={16} />
         </motion.button>
 
-        <span className="stepper-value">{formatValue(value)}</span>
+        <span className="stepper-value-v3">{formatValue(value)}</span>
 
         <motion.button
           type="button"
-          className="stepper-btn"
+          className="stepper-btn-v3"
           onClick={increment}
           disabled={value >= max}
           whileTap={{ scale: 0.9 }}
         >
-          <Plus size={14} />
+          <Plus size={16} />
         </motion.button>
       </div>
 
       {presets && presets.length > 0 && (
-        <div className="stepper-presets">
+        <div className="stepper-presets-v3">
           {presets.map((preset) => (
             <motion.button
               key={preset.value}
               type="button"
-              className={`preset-chip ${value === preset.value ? "active" : ""}`}
+              className={`preset-chip-v3 ${value === preset.value ? "active" : ""}`}
               onClick={() => onChange(preset.value)}
               whileTap={{ scale: 0.95 }}
             >
@@ -172,10 +191,15 @@ function StepperInput({
   );
 }
 
+type SectionId = "brew" | "params" | "rating" | "flavor" | "taste" | "notes";
+
+const CUP_SECTION_ORDER: SectionId[] = ["brew", "params", "rating", "flavor", "taste", "notes"];
+
 export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
   const isEditMode = Boolean(cup);
   const { addCup, updateCup } = useCoffeeStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<SectionId | null>("brew");
   const [formData, setFormData] = useState<CupFormState>(() =>
     buildInitialFormData(cup)
   );
@@ -246,16 +270,75 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
   ];
 
   const gramsPresets = [
-    { label: "15", value: 15 },
-    { label: "18", value: 18 },
-    { label: "20", value: 20 },
+    { label: "15g", value: 15 },
+    { label: "18g", value: 18 },
+    { label: "20g", value: 20 },
   ];
 
   const tempPresets = [
-    { label: "92", value: 92 },
-    { label: "93", value: 93 },
-    { label: "96", value: 96 },
+    { label: "92°", value: 92 },
+    { label: "93°", value: 93 },
+    { label: "96°", value: 96 },
   ];
+
+  const toggleSection = (section: SectionId) => {
+    setExpandedSection((prev) => (prev === section ? null : section));
+  };
+
+  const goToNextSection = () => {
+    const idx = CUP_SECTION_ORDER.indexOf(expandedSection ?? "brew");
+    if (idx < CUP_SECTION_ORDER.length - 1) {
+      setExpandedSection(CUP_SECTION_ORDER[idx + 1]);
+    }
+  };
+
+  const sectionRefs = useRef<Record<SectionId, HTMLDivElement | null>>({
+    brew: null,
+    params: null,
+    rating: null,
+    flavor: null,
+    taste: null,
+    notes: null,
+  });
+
+  useEffect(() => {
+    if (expandedSection) {
+      sectionRefs.current[expandedSection]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [expandedSection]);
+
+  const getSectionStatus = (section: SectionId): "empty" | "partial" | "complete" => {
+    switch (section) {
+      case "brew":
+        return formData.brewMethod ? "complete" : "empty";
+      case "params":
+        return "complete";
+      case "rating":
+        return formData.rating > 0 ? "complete" : "empty";
+      case "flavor":
+        return formData.quickNotes.length > 0 ? "complete" : "empty";
+      case "taste":
+        const hasTaste = formData.acidity || formData.sweetness || formData.bitterness || formData.balance;
+        const allTaste = formData.acidity && formData.sweetness && formData.bitterness && formData.balance;
+        if (allTaste) return "complete";
+        if (hasTaste) return "partial";
+        return "empty";
+      case "notes":
+        return formData.notes ? "complete" : "empty";
+      default:
+        return "empty";
+    }
+  };
+
+  const getTastePreview = () => {
+    const filled = [formData.acidity, formData.sweetness, formData.bitterness, formData.balance].filter(Boolean).length;
+    if (filled === 0) return "غير محدد";
+    if (filled === 4) return "مكتمل";
+    return `${filled}/4`;
+  };
 
   return (
     <motion.div
@@ -266,7 +349,7 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
       onClick={onClose}
     >
       <motion.div
-        className="modal-content cup-modal-v2"
+        className="modal-content cup-modal-v3"
         initial={{ opacity: 0, y: "100%" }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: "100%" }}
@@ -275,171 +358,470 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
       >
         <div className="modal-handle" />
 
-        <div className="modal-header compact">
-          <h2>{isEditMode ? "تعديل الفنجان" : "فنجان جديد"}</h2>
+        <div className="modal-header-v3">
+          <div className="modal-header-content">
+            <CoffeeIcon size={20} className="modal-header-icon" />
+            <div>
+              <h2>{isEditMode ? "تعديل الفنجان" : "فنجان جديد"}</h2>
+              <span className="form-progress">
+                {CUP_SECTION_ORDER.indexOf(expandedSection ?? "brew") + 1} / {CUP_SECTION_ORDER.length}
+              </span>
+            </div>
+          </div>
           <motion.button
-            className="close-button"
+            className="close-button-v3"
             onClick={onClose}
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <X size={22} />
+            <X size={20} />
           </motion.button>
         </div>
 
-        <form onSubmit={handleSubmit} className="cup-form-v2">
-          <div className="form-section-compact">
-            <label className="section-label">طريقة التحضير</label>
-            <div className="select-wrapper">
-              <select
-                value={formData.brewMethod}
-                onChange={(e) =>
-                  setFormData({ ...formData, brewMethod: e.target.value as BrewMethod })
-                }
-                className="form-select"
-              >
-                {brewMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {BREW_METHOD_LABELS[method]}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={18} className="select-icon" />
-            </div>
-          </div>
-
-          <div className="brew-params-v2">
-            <StepperInput
-              value={formData.time}
-              onChange={(time) => setFormData({ ...formData, time })}
-              min={30}
-              max={600}
-              step={15}
-              formatValue={formatTime}
-              presets={timePresets}
-              icon={<Clock size={14} />}
-              label="الوقت"
-            />
-
-            <StepperInput
-              value={formData.grams}
-              onChange={(grams) => setFormData({ ...formData, grams })}
-              min={5}
-              max={50}
-              step={1}
-              formatValue={(v) => `${v}g`}
-              presets={gramsPresets}
-              icon={<Scale size={14} />}
-              label="البن"
-            />
-
-            <StepperInput
-              value={formData.temperature}
-              onChange={(temperature) => setFormData({ ...formData, temperature })}
-              min={80}
-              max={100}
-              step={1}
-              formatValue={(v) => `${v}°`}
-              presets={tempPresets}
-              icon={<Thermometer size={14} />}
-              label="الحرارة"
-            />
-          </div>
-
-          <div className="rating-section-v2">
-            <label className="section-label">التقييم</label>
-            <StarRating
-              rating={formData.rating}
-              onRate={(rating) => setFormData({ ...formData, rating })}
-              size="lg"
-            />
-          </div>
-
-          <div className="form-section-compact">
-            <label className="section-label">ملاحظات سريعة (متعدد)</label>
-            <div className="cup-quick-notes-picker">
-              {CUP_QUICK_NOTE_OPTIONS.map((note) => {
-                const selected = formData.quickNotes.includes(note.value);
-
-                return (
-                  <motion.button
-                    key={note.value}
-                    type="button"
-                    className={`cup-quick-note-btn ${selected ? "selected" : ""}`}
-                    onClick={() => toggleQuickNote(note.value)}
-                    whileTap={{ scale: 0.96 }}
-                    aria-pressed={selected}
-                  >
-                    {note.label}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="form-section-compact">
-            <label className="section-label">الانطباع الحسي</label>
-            <div className="taste-grid">
-              {TASTE_FIELDS.map((field) => (
-                <div key={field.key} className="taste-select-field">
-                  <label className="section-label" htmlFor={`cup-${field.key}`}>
-                    {field.label}
-                  </label>
-                  <div className="select-wrapper">
-                    <select
-                      id={`cup-${field.key}`}
-                      value={formData[field.key]}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          [field.key]: e.target.value,
-                        })
-                      }
-                      className="form-select"
-                    >
-                      <option value="">غير محدد</option>
-                      {TASTE_LEVELS.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={18} className="select-icon" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="form-section-compact">
-            <label className="section-label">ملاحظات إضافية</label>
-            <textarea
-              className="notes-textarea"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="أضف ملاحظاتك..."
-              rows={2}
-            />
-          </div>
-
-          <motion.button
-            type="submit"
-            className="submit-button-v2"
-            disabled={isSubmitting}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
+        <form onSubmit={handleSubmit} className="cup-form-v3">
+          {/* Section 1: Brew Method */}
+          <div
+            ref={(el) => { sectionRefs.current.brew = el; }}
+            className={`form-accordion ${expandedSection === "brew" ? "expanded" : ""}`}
           >
-            <CoffeeIcon size={20} />
-            {isSubmitting
-              ? isEditMode
-                ? "جاري التحديث..."
-                : "جاري الحفظ..."
-              : isEditMode
-                ? "حفظ التعديلات"
-                : "حفظ"}
-          </motion.button>
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("brew")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("brew")}`}>
+                  <Flame size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">طريقة التحضير</span>
+                  {expandedSection !== "brew" && (
+                    <span className="accordion-preview">
+                      {BREW_METHOD_ICONS[formData.brewMethod]} {BREW_METHOD_LABELS[formData.brewMethod]}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "brew" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "brew" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="brew-method-grid-v3">
+                      {brewMethods.map((method) => (
+                        <motion.button
+                          key={method}
+                          type="button"
+                          className={`brew-method-card-v3 ${formData.brewMethod === method ? "selected" : ""}`}
+                          onClick={() => setFormData({ ...formData, brewMethod: method })}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <span className="brew-emoji">{BREW_METHOD_ICONS[method]}</span>
+                          <span className="brew-name">{BREW_METHOD_LABELS[method]}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 2: Brew Parameters */}
+          <div
+            ref={(el) => { sectionRefs.current.params = el; }}
+            className={`form-accordion ${expandedSection === "params" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("params")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("params")}`}>
+                  <Scale size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">إعدادات التحضير</span>
+                  {expandedSection !== "params" && (
+                    <span className="accordion-preview">
+                      {formatTime(formData.time)} · {formData.grams}g · {formData.temperature}°
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "params" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "params" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="brew-params-grid-v3">
+                      <StepperInput
+                        value={formData.time}
+                        onChange={(time) => setFormData({ ...formData, time })}
+                        min={30}
+                        max={600}
+                        step={15}
+                        formatValue={formatTime}
+                        presets={timePresets}
+                        icon={<Clock size={16} />}
+                        label="الوقت"
+                      />
+
+                      <StepperInput
+                        value={formData.grams}
+                        onChange={(grams) => setFormData({ ...formData, grams })}
+                        min={5}
+                        max={50}
+                        step={1}
+                        formatValue={(v) => `${v}g`}
+                        presets={gramsPresets}
+                        icon={<Scale size={16} />}
+                        label="البن"
+                      />
+
+                      <StepperInput
+                        value={formData.temperature}
+                        onChange={(temperature) => setFormData({ ...formData, temperature })}
+                        min={80}
+                        max={100}
+                        step={1}
+                        formatValue={(v) => `${v}°`}
+                        presets={tempPresets}
+                        icon={<Thermometer size={16} />}
+                        label="الحرارة"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 3: Rating */}
+          <div
+            ref={(el) => { sectionRefs.current.rating = el; }}
+            className={`form-accordion ${expandedSection === "rating" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("rating")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("rating")}`}>
+                  <Star size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">التقييم</span>
+                  {expandedSection !== "rating" && (
+                    <span className="accordion-preview">
+                      {formData.rating > 0 ? `${"★".repeat(formData.rating)}${"☆".repeat(5 - formData.rating)}` : "غير مقيّم"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "rating" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "rating" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="rating-container-v3">
+                      <StarRating
+                        rating={formData.rating}
+                        onRate={(rating) => setFormData({ ...formData, rating })}
+                        size="md"
+                      />
+                      <span className="rating-hint">اضغط على النجوم لتقييم الفنجان</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 4: Flavor Notes */}
+          <div
+            ref={(el) => { sectionRefs.current.flavor = el; }}
+            className={`form-accordion ${expandedSection === "flavor" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("flavor")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("flavor")}`}>
+                  <Sparkles size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">النكهات</span>
+                  {expandedSection !== "flavor" && formData.quickNotes.length > 0 && (
+                    <span className="accordion-preview">
+                      {formData.quickNotes.length} نكهة
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "flavor" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "flavor" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="flavor-grid-v3">
+                      {CUP_QUICK_NOTE_OPTIONS.map((note) => {
+                        const selected = formData.quickNotes.includes(note.value);
+
+                        return (
+                          <motion.button
+                            key={note.value}
+                            type="button"
+                            className={`flavor-chip-v3 ${selected ? "selected" : ""}`}
+                            onClick={() => toggleQuickNote(note.value)}
+                            whileTap={{ scale: 0.95 }}
+                            aria-pressed={selected}
+                          >
+                            <span className="flavor-emoji">{note.emoji}</span>
+                            <span className="flavor-label">{note.label}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 5: Taste Profile */}
+          <div
+            ref={(el) => { sectionRefs.current.taste = el; }}
+            className={`form-accordion ${expandedSection === "taste" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("taste")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("taste")}`}>
+                  <Gauge size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">الانطباع الحسي</span>
+                  {expandedSection !== "taste" && (
+                    <span className="accordion-preview">
+                      {getTastePreview()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "taste" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "taste" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="taste-profile-v3">
+                      {TASTE_FIELDS.map((field) => (
+                        <div key={field.key} className="taste-field-v3">
+                          <div className="taste-field-header">
+                            <span className="taste-emoji">{field.emoji}</span>
+                            <span className="taste-label">{field.label}</span>
+                          </div>
+                          <div className="taste-levels-v3">
+                            {TASTE_LEVELS.map((level, index) => (
+                              <motion.button
+                                key={level.value}
+                                type="button"
+                                className={`taste-level-btn ${formData[field.key] === level.value ? "selected" : ""}`}
+                                onClick={() =>
+                                  setFormData({
+                                    ...formData,
+                                    [field.key]: formData[field.key] === level.value ? "" : level.value,
+                                  })
+                                }
+                                whileTap={{ scale: 0.95 }}
+                                style={{ "--level-intensity": index / 4 } as React.CSSProperties}
+                              >
+                                {index + 1}
+                              </motion.button>
+                            ))}
+                          </div>
+                          <div className="taste-scale-labels">
+                            <span>منخفض</span>
+                            <span>مرتفع</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 6: Notes */}
+          <div
+            ref={(el) => { sectionRefs.current.notes = el; }}
+            className={`form-accordion ${expandedSection === "notes" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("notes")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("notes")}`}>
+                  <MessageSquare size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">ملاحظات إضافية</span>
+                  {expandedSection !== "notes" && formData.notes && (
+                    <span className="accordion-preview accordion-preview-truncate">
+                      {formData.notes.slice(0, 25)}{formData.notes.length > 25 ? "..." : ""}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "notes" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "notes" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <textarea
+                      className="notes-textarea-v3"
+                      value={formData.notes}
+                      onChange={(e) =>
+                        setFormData({ ...formData, notes: e.target.value })
+                      }
+                      placeholder="أضف ملاحظاتك عن هذا الفنجان..."
+                      rows={3}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Sticky Submit Button */}
+          <div className="submit-container-v3">
+            <motion.button
+              type="submit"
+              className="submit-button-v3"
+              disabled={isSubmitting}
+              whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+            >
+              {isSubmitting ? (
+                <span className="submit-loading">
+                  {isEditMode ? "جاري التحديث..." : "جاري الحفظ..."}
+                </span>
+              ) : (
+                <>
+                  <CoffeeIcon size={20} />
+                  <span>{isEditMode ? "حفظ التعديلات" : "حفظ الفنجان"}</span>
+                </>
+              )}
+            </motion.button>
+          </div>
         </form>
       </motion.div>
     </motion.div>
