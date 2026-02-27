@@ -11,9 +11,6 @@ export function AuthShell({ subtitle, children }: AuthShellProps) {
   return (
     <div className="auth-page" dir="rtl">
       <div className="auth-background">
-        <div className="auth-pattern" />
-        <div className="auth-glow auth-glow-1" />
-        <div className="auth-glow auth-glow-2" />
       </div>
 
       <motion.div
@@ -43,34 +40,6 @@ export function AuthShell({ subtitle, children }: AuthShellProps) {
         >
           {children}
         </motion.div>
-
-        <div className="auth-decoration">
-          <motion.div
-            className="coffee-bean bean-1"
-            animate={{
-              y: [0, -10, 0],
-              rotate: [0, 5, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="coffee-bean bean-2"
-            animate={{
-              y: [0, 10, 0],
-              rotate: [0, -5, 0],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1,
-            }}
-          />
-        </div>
       </motion.div>
     </div>
   );
