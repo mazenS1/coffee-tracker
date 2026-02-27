@@ -254,6 +254,14 @@ export function SignUpPage() {
                 </div>
               </label>
 
+              <div
+                id="clerk-captcha"
+                className="authx-captcha"
+                data-cl-theme="auto"
+                data-cl-size="flexible"
+                data-cl-language="ar"
+              />
+
               <button
                 className="authx-primary-btn"
                 type="submit"

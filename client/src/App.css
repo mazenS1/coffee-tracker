@@ -5239,3 +5239,7 @@ a.empty-add-button {
 [data-theme="dark"] .authx-oauth-badge {
   background: #1f1f1f;
 }
+
+.authx-captcha {
+  margin-top: var(--space-xs);
+}
