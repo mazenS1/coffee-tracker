@@ -1,237 +1,374 @@
-import { SignUp } from "@clerk/clerk-react";
-import { motion } from "framer-motion";
-import { Coffee } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Apple, CheckCircle2, Loader2, Lock, Mail, User } from "lucide-react";
+import { useSignUp } from "@clerk/clerk-react";
+import { AuthLayout } from "./AuthLayout";
+import {
+  OAUTH_REDIRECT_COMPLETE,
+  OAUTH_REDIRECT_URL,
+  extractClerkErrorMessage,
+} from "./authFlow";
+import type { AuthStep } from "./authFlow";
 
-/**
- * Custom Sign Up Page
- * 
- * A beautiful, RTL Arabic sign-up page that matches the coffee theme.
- * Mirrors the SignInPage design for consistency.
- */
+type OAuthProviderStrategy = "oauth_google" | "oauth_apple";
+
 export function SignUpPage() {
-  return (
-    <div className="auth-page" dir="rtl">
-      {/* Background decorations */}
-      <div className="auth-background">
-        <div className="auth-pattern" />
-        <div className="auth-glow auth-glow-1" />
-        <div className="auth-glow auth-glow-2" />
-      </div>
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const navigate = useNavigate();
 
-      <motion.div
-        className="auth-container"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+  const [step, setStep] = useState<AuthStep>("form");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderStrategy | null>(
+    null,
+  );
+
+  if (!isLoaded || !signUp || !setActive) {
+    return (
+      <AuthLayout
+        title="إنشاء حساب"
+        subtitle="أنشئ حسابك وابدأ بتتبع تجارب القهوة بكل تفاصيلها"
       >
-        {/* Branding header */}
-        <motion.div
-          className="auth-branding"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-        >
-          <div className="auth-logo">
-            <Coffee size={40} />
-          </div>
-          <h1 className="auth-title">دفتر القهوة</h1>
-          <p className="auth-subtitle">أنشئ حسابك وابدأ رحلتك مع القهوة المختصة</p>
-        </motion.div>
-
-        {/* Clerk SignUp Component with custom appearance */}
-        <motion.div
-          className="auth-card"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-        >
-          <SignUp
-            appearance={{
-              layout: {
-                socialButtonsPlacement: "bottom",
-                socialButtonsVariant: "blockButton",
-                privacyPageUrl: undefined,
-                termsPageUrl: undefined,
-              },
-              variables: {
-                colorPrimary: "#4a2c17",
-                colorBackground: "var(--bg-card)",
-                colorText: "var(--text-primary)",
-                colorTextSecondary: "var(--text-secondary)",
-                colorInputBackground: "var(--bg-secondary)",
-                colorInputText: "var(--text-primary)",
-                colorDanger: "#dc3545",
-                fontFamily: "'Tajawal', sans-serif",
-                fontFamilyButtons: "'Tajawal', sans-serif",
-                fontSize: "1rem",
-                borderRadius: "12px",
-                spacingUnit: "1rem",
-              },
-              elements: {
-                rootBox: {
-                  width: "100%",
-                  maxWidth: "100%",
-                },
-                card: {
-                  background: "transparent",
-                  boxShadow: "none",
-                  padding: "0",
-                  margin: "0",
-                },
-                headerTitle: {
-                  fontFamily: "'Reem Kufi', sans-serif",
-                  fontSize: "1.5rem",
-                  fontWeight: "600",
-                  color: "var(--text-primary)",
-                  textAlign: "center",
-                },
-                headerSubtitle: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-secondary)",
-                  textAlign: "center",
-                },
-                formFieldLabel: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "600",
-                  color: "var(--text-secondary)",
-                  fontSize: "0.875rem",
-                  textAlign: "right",
-                },
-                formFieldInput: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "0.875rem 1rem",
-                  fontSize: "1rem",
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-primary)",
-                  direction: "rtl",
-                  textAlign: "right",
-                  transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-                  "&:focus": {
-                    borderColor: "var(--accent)",
-                    boxShadow: "0 0 0 3px rgba(198, 139, 60, 0.15)",
-                  },
-                },
-                formFieldInputShowPasswordButton: {
-                  color: "var(--text-muted)",
-                },
-                formButtonPrimary: {
-                  background: "linear-gradient(135deg, #4a2c17, #2d1810)",
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "600",
-                  fontSize: "1rem",
-                  padding: "0.875rem 1.5rem",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 20px rgba(45, 24, 16, 0.3)",
-                  transition: "all 0.25s ease",
-                  "&:hover": {
-                    boxShadow: "0 6px 28px rgba(45, 24, 16, 0.4)",
-                    transform: "translateY(-1px)",
-                  },
-                },
-                socialButtonsBlockButton: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "0.75rem 1rem",
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-primary)",
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    background: "var(--bg-card)",
-                    borderColor: "var(--accent)",
-                  },
-                },
-                socialButtonsBlockButtonText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "500",
-                },
-                dividerLine: {
-                  background: "var(--border)",
-                },
-                dividerText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-muted)",
-                  fontSize: "0.875rem",
-                },
-                footerActionLink: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "#c68b3c",
-                  fontWeight: "600",
-                  "&:hover": {
-                    color: "#b8860b",
-                  },
-                },
-                footerActionText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-muted)",
-                },
-                alert: {
-                  background: "rgba(220, 53, 69, 0.1)",
-                  border: "1px solid rgba(220, 53, 69, 0.3)",
-                  borderRadius: "12px",
-                  color: "#dc3545",
-                  fontFamily: "'Tajawal', sans-serif",
-                },
-                alertText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                },
-                otpCodeFieldInput: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  fontFamily: "'Reem Kufi', sans-serif",
-                  fontSize: "1.25rem",
-                  "&:focus": {
-                    borderColor: "var(--accent)",
-                    boxShadow: "0 0 0 3px rgba(198, 139, 60, 0.15)",
-                  },
-                },
-                formFieldErrorText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "#dc3545",
-                  fontSize: "0.8rem",
-                },
-                spinner: {
-                  color: "#c68b3c",
-                },
-              },
-            }}
-            routing="hash"
-            signInUrl="#/sign-in"
-          />
-        </motion.div>
-
-        {/* Decorative coffee beans */}
-        <div className="auth-decoration">
-          <motion.div
-            className="coffee-bean bean-1"
-            animate={{
-              y: [0, -10, 0],
-              rotate: [0, 5, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="coffee-bean bean-2"
-            animate={{
-              y: [0, 10, 0],
-              rotate: [0, -5, 0],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1,
-            }}
-          />
+        <div className="auth-loading-card">
+          <Loader2 size={24} className="spinner" />
+          <p>جاري تحميل تجربة إنشاء الحساب...</p>
         </div>
-      </motion.div>
-    </div>
+      </AuthLayout>
+    );
+  }
+
+  useEffect(() => {
+    if (step !== "done") return;
+
+    const timer = window.setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [navigate, step]);
+
+  const completeSignUp = async (sessionId: string | null) => {
+    if (!sessionId) {
+      throw new Error("تعذر إنشاء الجلسة. حاول مرة أخرى.");
+    }
+
+    await setActive({ session: sessionId });
+    setStep("done");
+  };
+
+  const clearErrors = () => {
+    setErrorMessage(null);
+  };
+
+  const handleCreateAccount = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isLoaded) return;
+
+    const emailAddress = email.trim().toLowerCase();
+    if (!emailAddress) {
+      setErrorMessage("أدخل البريد الإلكتروني.");
+      return;
+    }
+
+    clearErrors();
+    setIsSubmitting(true);
+
+    try {
+      const result = await signUp.create({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        emailAddress,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await completeSignUp(result.createdSessionId);
+        return;
+      }
+
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setStep("otp");
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isLoaded) return;
+
+    const normalizedCode = code.trim();
+    if (!normalizedCode) {
+      setErrorMessage("أدخل رمز التحقق أولاً.");
+      return;
+    }
+
+    clearErrors();
+    setIsSubmitting(true);
+
+    try {
+      const result = await signUp.attemptEmailAddressVerification({
+        code: normalizedCode,
+      });
+
+      if (result.status === "complete") {
+        await completeSignUp(result.createdSessionId);
+        return;
+      }
+
+      throw new Error("رمز التحقق غير صحيح أو انتهت صلاحيته.");
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isLoaded) return;
+
+    clearErrors();
+    setIsResending(true);
+
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleOAuth = async (provider: OAuthProviderStrategy) => {
+    if (!isLoaded) return;
+
+    clearErrors();
+    setOauthLoading(provider);
+
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: provider,
+        redirectUrl: OAUTH_REDIRECT_URL,
+        redirectUrlComplete: OAUTH_REDIRECT_COMPLETE,
+      });
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+      setOauthLoading(null);
+    }
+  };
+
+  const stepNumber = step === "form" ? 1 : step === "otp" ? 2 : 3;
+
+  return (
+    <AuthLayout
+      title="إنشاء حساب"
+      subtitle="أنشئ حسابك وابدأ بتتبع تجارب القهوة بكل تفاصيلها"
+    >
+      {step === "done" ? (
+        <div className="authx-done">
+          <CheckCircle2 size={44} />
+          <h3>تم إنشاء الحساب بنجاح</h3>
+          <p>أهلاً بك. سيتم تحويلك الآن إلى التطبيق.</p>
+        </div>
+      ) : (
+        <>
+          <p className="authx-step-indicator">الخطوة {stepNumber} من 3</p>
+
+          {errorMessage && <div className="authx-error">{errorMessage}</div>}
+
+          {step === "form" ? (
+            <form className="authx-form" onSubmit={handleCreateAccount}>
+              <div className="authx-name-row">
+                <label className="authx-field">
+                  <span>الاسم الأول</span>
+                  <div className="authx-input-wrap">
+                    <User size={17} />
+                    <input
+                      className="authx-input"
+                      type="text"
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      placeholder="الاسم الأول"
+                      autoComplete="given-name"
+                      required
+                    />
+                  </div>
+                </label>
+
+                <label className="authx-field">
+                  <span>اسم العائلة</span>
+                  <div className="authx-input-wrap">
+                    <User size={17} />
+                    <input
+                      className="authx-input"
+                      type="text"
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                      placeholder="اسم العائلة"
+                      autoComplete="family-name"
+                      required
+                    />
+                  </div>
+                </label>
+              </div>
+
+              <label className="authx-field">
+                <span>البريد الإلكتروني</span>
+                <div className="authx-input-wrap">
+                  <Mail size={17} />
+                  <input
+                    className="authx-input"
+                    type="email"
+                    dir="ltr"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </label>
+
+              <label className="authx-field">
+                <span>كلمة المرور</span>
+                <div className="authx-input-wrap">
+                  <Lock size={17} />
+                  <input
+                    className="authx-input"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="8 أحرف على الأقل"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                  />
+                </div>
+              </label>
+
+              <button
+                className="authx-primary-btn"
+                type="submit"
+                disabled={isSubmitting || oauthLoading !== null}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={18} className="spinner" />
+                    جاري إنشاء الحساب...
+                  </>
+                ) : (
+                  "إنشاء الحساب وإرسال الرمز"
+                )}
+              </button>
+            </form>
+          ) : (
+            <form className="authx-form" onSubmit={handleVerifyOtp}>
+              <p className="authx-otp-hint">
+                أدخل رمز التحقق المرسل إلى {email.trim()}
+              </p>
+              <label className="authx-field">
+                <span>رمز التحقق</span>
+                <input
+                  className="authx-input authx-otp-input"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  placeholder="123456"
+                  maxLength={6}
+                  required
+                />
+              </label>
+
+              <button
+                className="authx-primary-btn"
+                type="submit"
+                disabled={isSubmitting || isResending || oauthLoading !== null}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={18} className="spinner" />
+                    جاري التأكيد...
+                  </>
+                ) : (
+                  "تأكيد الرمز"
+                )}
+              </button>
+
+              <div className="authx-secondary-actions">
+                <button
+                  className="authx-link-btn"
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending || isSubmitting}
+                >
+                  {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
+                </button>
+                <button
+                  className="authx-link-btn"
+                  type="button"
+                  onClick={() => {
+                    setStep("form");
+                    setCode("");
+                    clearErrors();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  رجوع
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="authx-divider" aria-hidden="true">
+            <span />
+            <p>أو استخدم</p>
+            <span />
+          </div>
+
+          <div className="authx-oauth-grid">
+            <button
+              type="button"
+              className="authx-oauth-btn"
+              onClick={() => handleOAuth("oauth_google")}
+              disabled={isSubmitting || isResending || oauthLoading !== null}
+            >
+              {oauthLoading === "oauth_google" ? (
+                <Loader2 size={16} className="spinner" />
+              ) : (
+                <span className="authx-oauth-badge">G</span>
+              )}
+              Google
+            </button>
+            <button
+              type="button"
+              className="authx-oauth-btn"
+              onClick={() => handleOAuth("oauth_apple")}
+              disabled={isSubmitting || isResending || oauthLoading !== null}
+            >
+              {oauthLoading === "oauth_apple" ? (
+                <Loader2 size={16} className="spinner" />
+              ) : (
+                <Apple size={16} />
+              )}
+              Apple
+            </button>
+          </div>
+
+          <p className="authx-switch-link">
+            لديك حساب بالفعل؟ <Link to="/sign-in">تسجيل الدخول</Link>
+          </p>
+        </>
+      )}
+    </AuthLayout>
   );
 }
