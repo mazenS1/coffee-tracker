@@ -5,6 +5,20 @@ import { useCoffeeStore } from "../store/coffeeStore";
 import type { RoastLevel, CreateCoffeeInput } from "@coffee-tracker/shared";
 import { ROAST_LEVEL_LABELS } from "@coffee-tracker/shared";
 import { COFFEE_COUNTRIES, getFlagEmoji } from "../data/countries";
+import { DEFAULT_ROASTERS } from "../data/roasters";
+
+const PREFILL_PREFIX = "prefill:";
+
+/** Roaster option: either from API (has id) or prefilled (value = prefill:name) */
+function getRoasterOptions(roasters: { id: string; name: string }[]) {
+  const apiNames = new Set(roasters.map((r) => r.name));
+  const prefilledOnly = DEFAULT_ROASTERS.filter((name) => !apiNames.has(name));
+  const options: { value: string; label: string }[] = [
+    ...roasters.map((r) => ({ value: r.id, label: r.name })),
+    ...prefilledOnly.map((name) => ({ value: `${PREFILL_PREFIX}${name}`, label: name })),
+  ];
+  return options.sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}
 
 interface AddCoffeeFormProps {
   onClose: () => void;
@@ -67,8 +81,16 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
 
     setIsSubmitting(true);
     try {
+      let roasterId = formData.roasterId;
+      if (roasterId.startsWith(PREFILL_PREFIX)) {
+        const roasterName = roasterId.slice(PREFILL_PREFIX.length);
+        const roaster = await addRoaster(roasterName);
+        if (!roaster) return;
+        roasterId = roaster.id;
+      }
+
       const coffeeInput: CreateCoffeeInput = {
-        roasterId: formData.roasterId,
+        roasterId,
         name: formData.name,
         origin: formData.origin || undefined,
         roastLevel: formData.roastLevel,
@@ -143,9 +165,9 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
                     required
                   >
                     <option value="">اختر محمصة...</option>
-                    {roasters.map((roaster) => (
-                      <option key={roaster.id} value={roaster.id}>
-                        {roaster.name}
+                    {getRoasterOptions(roasters).map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
                       </option>
                     ))}
                   </select>
