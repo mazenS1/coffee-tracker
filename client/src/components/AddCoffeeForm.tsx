@@ -25,15 +25,14 @@ interface AddCoffeeFormProps {
 }
 
 const COFFEE_QUICK_NOTE_OPTIONS = [
-  { value: "Fruity", label: "فواكهي", emoji: "🍎" },
-  { value: "Chocolatey", label: "شوكولاتي", emoji: "🍫" },
+  { value: "Fruity", label: "فواكه", emoji: "🍎" },
+  { value: "Chocolatey", label: "شوكولاتة", emoji: "🍫" },
   { value: "Classic", label: "كلاسيكي", emoji: "☕" },
-  { value: "Nutty", label: "مكسراتي", emoji: "🥜" },
+  { value: "Nutty", label: "مكسرات", emoji: "🥜" },
   { value: "Floral", label: "زهري", emoji: "🌸" },
   { value: "Citrusy", label: "حمضيات", emoji: "🍋" },
-  { value: "Sweet", label: "حلو", emoji: "🍯" },
+  { value: "Sweet", label: "حلاوة", emoji: "🍯" },
   { value: "Caramelly", label: "كراميل", emoji: "🍮" },
-  { value: "Tea-like", label: "شبيه بالشاي", emoji: "🍵" },
   { value: "Spicy", label: "بهارات", emoji: "🌶️" },
 ] as const;
 

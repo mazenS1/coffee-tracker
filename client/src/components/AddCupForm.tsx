@@ -29,16 +29,16 @@ interface AddCupFormProps {
 }
 
 const CUP_QUICK_NOTE_OPTIONS = [
-  { value: "Fruity", label: "فواكهي", emoji: "🍎" },
-  { value: "Chocolatey", label: "شوكولاتي", emoji: "🍫" },
+  { value: "Fruity", label: "فواكه", emoji: "🍎" },
+  { value: "Chocolatey", label: "شوكولاتة", emoji: "🍫" },
   { value: "Classic", label: "كلاسيكي", emoji: "☕" },
-  { value: "Nutty", label: "مكسراتي", emoji: "🥜" },
+  { value: "Nutty", label: "مكسرات", emoji: "🥜" },
   { value: "Floral", label: "زهري", emoji: "🌸" },
   { value: "Citrusy", label: "حمضيات", emoji: "🍋" },
-  { value: "Sweet", label: "حلو", emoji: "🍯" },
+  { value: "Sweet", label: "حلاوة", emoji: "🍯" },
   { value: "Caramelly", label: "كراميل", emoji: "🍮" },
   { value: "Clean", label: "نظيف", emoji: "💧" },
-  { value: "Juicy", label: "عصيري", emoji: "🍇" },
+  { value: "Juicy", label: "عصير", emoji: "🍇" },
 ] as const;
 
 const TASTE_LEVELS = [
@@ -534,64 +534,7 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
           </div>
 
           {/* Section 3: Rating */}
-          <div
-            ref={(el) => { sectionRefs.current.rating = el; }}
-            className={`form-accordion ${expandedSection === "rating" ? "expanded" : ""}`}
-          >
-            <button
-              type="button"
-              className="accordion-header"
-              onClick={() => toggleSection("rating")}
-            >
-              <div className="accordion-title">
-                <div className={`accordion-icon-wrapper ${getSectionStatus("rating")}`}>
-                  <Star size={18} />
-                </div>
-                <div className="accordion-title-text">
-                  <span className="accordion-label">التقييم</span>
-                  {expandedSection !== "rating" && (
-                    <span className="accordion-preview">
-                      {formData.rating > 0 ? `${"★".repeat(formData.rating)}${"☆".repeat(5 - formData.rating)}` : "غير مقيّم"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="accordion-chevron">
-                {expandedSection === "rating" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {expandedSection === "rating" && (
-                <motion.div
-                  className="accordion-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="accordion-body">
-                    <div className="rating-container-v3">
-                      <StarRating
-                        rating={formData.rating}
-                        onRate={(rating) => setFormData({ ...formData, rating })}
-                        size="md"
-                      />
-                      <span className="rating-hint">اضغط على النجوم لتقييم الفنجان</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="section-next-btn"
-                      onClick={goToNextSection}
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        
 
           {/* Section 4: Flavor Notes */}
           <div
@@ -734,6 +677,65 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
                           </div>
                         </div>
                       ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="section-next-btn"
+                      onClick={goToNextSection}
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={16} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div
+            ref={(el) => { sectionRefs.current.rating = el; }}
+            className={`form-accordion ${expandedSection === "rating" ? "expanded" : ""}`}
+          >
+            <button
+              type="button"
+              className="accordion-header"
+              onClick={() => toggleSection("rating")}
+            >
+              <div className="accordion-title">
+                <div className={`accordion-icon-wrapper ${getSectionStatus("rating")}`}>
+                  <Star size={18} />
+                </div>
+                <div className="accordion-title-text">
+                  <span className="accordion-label">التقييم</span>
+                  {expandedSection !== "rating" && (
+                    <span className="accordion-preview">
+                      {formData.rating > 0 ? `${"★".repeat(formData.rating)}${"☆".repeat(5 - formData.rating)}` : "غير مقيّم"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="accordion-chevron">
+                {expandedSection === "rating" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {expandedSection === "rating" && (
+                <motion.div
+                  className="accordion-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="accordion-body">
+                    <div className="rating-container-v3">
+                      <StarRating
+                        rating={formData.rating}
+                        onRate={(rating) => setFormData({ ...formData, rating })}
+                        size="md"
+                      />
+                      <span className="rating-hint">اضغط على النجوم لتقييم الفنجان</span>
                     </div>
                     <button
                       type="button"
