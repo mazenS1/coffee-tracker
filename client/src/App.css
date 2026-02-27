@@ -3415,7 +3415,7 @@ img {
   max-width: 420px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
 }
 
 /* Branding section */
@@ -3482,9 +3482,10 @@ img {
   }
 }
 
-/* Auth card (contains Clerk component) */
+/* Auth card (contains Clerk component) - tight fit around Clerk form */
 .auth-card {
   width: 100%;
+  min-width: 0;
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
@@ -3493,11 +3494,14 @@ img {
     0 0 0 1px rgba(212, 165, 116, 0.05);
   padding: var(--space-xl);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 @media (min-width: 768px) {
   .auth-card {
-    padding: var(--space-2xl);
+    padding: var(--space-lg);
     border-radius: 24px;
   }
 }
@@ -3656,13 +3660,16 @@ a.empty-add-button {
   width: 100%;
 }
 
+/* Clerk content fills the auth-card - no extra gap */
 .auth-card .cl-rootBox,
 .auth-card .cl-cardBox,
 .auth-card .cl-card,
 .auth-card .cl-main {
   width: 100% !important;
   max-width: 100% !important;
-  margin: 0 auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  flex: 1 1 auto !important;
 }
 
 .auth-page .cl-backRow {
