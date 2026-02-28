@@ -34,6 +34,16 @@
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+
+  /* Compatibility aliases for existing Clerk appearance config in main.tsx */
+  --bg-primary: var(--color-background);
+  --bg-secondary: var(--color-secondary);
+  --bg-card: var(--color-card);
+  --text-primary: var(--color-foreground);
+  --text-secondary: var(--color-secondary-foreground);
+  --text-muted: var(--color-muted-foreground);
+  --accent: var(--color-accent);
+  --border: var(--color-border);
 }
 
 [data-theme="dark"] {
