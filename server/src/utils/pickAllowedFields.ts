@@ -1,9 +1,9 @@
-export type PickAllowedFieldsResult<T extends Record<string, unknown>> = {
+export type PickAllowedFieldsResult<T extends object> = {
   picked: Partial<T>;
   unknownKeys: string[];
 };
 
-export const pickAllowedFields = <T extends Record<string, unknown>>(
+export const pickAllowedFields = <T extends object>(
   body: unknown,
   allowedKeys: readonly (keyof T)[]
 ): PickAllowedFieldsResult<T> => {
