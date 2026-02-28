@@ -187,6 +187,60 @@
   right: 0.75rem !important;
 }
 
+/* Coffee-cup avatar fallback for Clerk user button */
+.cl-avatarBox .cl-avatarImage[src*="gravatar"],
+.cl-avatarBox .cl-avatarImage[src*="clerk"],
+.cl-avatarBox .cl-avatarImage[src=""],
+.cl-avatarBox:not(:has(.cl-avatarImage[src*="googleusercontent"])):not(
+    :has(.cl-avatarImage[src*="github"])
+  ):not(:has(.cl-avatarImage[src*="facebook"]))
+  .cl-avatarImage {
+  opacity: 0;
+}
+
+.cl-avatarBox {
+  position: relative;
+  background: linear-gradient(135deg, #d4a574 0%, #c68b3c 100%) !important;
+}
+
+.cl-avatarBox::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 8h1a4 4 0 1 1 0 8h-1'/%3E%3Cpath d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/%3E%3Cline x1='6' x2='6' y1='2' y2='4'/%3E%3Cline x1='10' x2='10' y1='2' y2='4'/%3E%3Cline x1='14' x2='14' y1='2' y2='4'/%3E%3C/svg%3E");
+  background-size: 55%;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"])::after {
+  display: none;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) {
+  background: transparent !important;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) .cl-avatarImage {
+  opacity: 1 !important;
+}
+
 [data-theme="dark"] .cl-card {
   background: var(--color-card) !important;
   border-color: var(--color-border) !important;
