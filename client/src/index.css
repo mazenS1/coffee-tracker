@@ -1,29 +1,288 @@
-/* Base reset - App.css handles all styling */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Reem+Kufi:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  --font-sans: "Tajawal", sans-serif;
+  --font-display: "Reem Kufi", sans-serif;
+
+  --color-background: #faf6f1;
+  --color-foreground: #1a0f0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #1a0f0a;
+  --color-muted: #f5e6d3;
+  --color-muted-foreground: #8b7355;
+  --color-border: rgba(74, 44, 23, 0.1);
+  --color-ring: #c68b3c;
+  --color-primary: #4a2c17;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5e6d3;
+  --color-secondary-foreground: #2d1810;
+  --color-accent: #c68b3c;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #b22f3e;
+  --color-destructive-foreground: #ffffff;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
 }
 
-html {
-  /* Prevent iOS text size adjust after orientation change */
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* Compatibility aliases for existing Clerk appearance config in main.tsx */
+  --bg-primary: var(--color-background);
+  --bg-secondary: var(--color-secondary);
+  --bg-card: var(--color-card);
+  --text-primary: var(--color-foreground);
+  --text-secondary: var(--color-secondary-foreground);
+  --text-muted: var(--color-muted-foreground);
+  --accent: var(--color-accent);
+  --border: var(--color-border);
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  /* Use dvh for dynamic viewport height (accounts for mobile browser chrome) */
-  min-height: 100vh;
-  min-height: 100dvh;
-  /* Prevent pull-to-refresh and overscroll effects */
-  overscroll-behavior-y: contain;
+[data-theme="dark"] {
+  --color-background: #0f0d0b;
+  --color-foreground: #f8f4ef;
+  --color-card: #242019;
+  --color-card-foreground: #f8f4ef;
+  --color-muted: #1a1614;
+  --color-muted-foreground: #b8a890;
+  --color-border: rgba(232, 213, 191, 0.12);
+  --color-primary: #e8d5bf;
+  --color-primary-foreground: #0f0d0b;
+  --color-secondary: #1a1614;
+  --color-secondary-foreground: #f8f4ef;
+  --color-accent: #daa855;
+  --color-accent-foreground: #1a1614;
+  --color-destructive: #ff9ba6;
+  --color-destructive-foreground: #1f1315;
 }
 
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
-  /* Isolate the app container */
-  isolation: isolate;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-width: 320px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    overscroll-behavior-y: contain;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    isolation: isolate;
+  }
+}
+
+/* Clerk RTL + dark-mode overrides kept globally */
+.cl-rootBox,
+.cl-card,
+.cl-main,
+.cl-form,
+.cl-formFieldRow,
+.cl-formButtonPrimary,
+.cl-footerAction,
+.cl-socialButtons,
+.cl-dividerRow,
+.cl-identityPreview,
+.cl-alert,
+.cl-otpCodeField,
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverActions,
+.cl-userProfile-root,
+.cl-navbar,
+.cl-page,
+.cl-profilePage {
+  direction: rtl !important;
+}
+
+.cl-formFieldLabel,
+.cl-formFieldLabelRow,
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-footerActionText,
+.cl-alertText,
+.cl-identityPreviewText,
+.cl-userButtonPopoverActionButtonText {
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverCard {
+  left: auto !important;
+  right: 0 !important;
+}
+
+.cl-userButtonPopoverActions {
+  direction: rtl !important;
+  width: 100% !important;
+}
+
+.cl-userButtonPopoverActionButton {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButtonText {
+  flex: 1 !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButtonIcon {
+  order: -1 !important;
+}
+
+.cl-userPreview {
+  direction: rtl !important;
+  flex-direction: row-reverse !important;
+}
+
+.cl-userPreviewMainIdentifier,
+.cl-userPreviewSecondaryIdentifier {
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverFooter {
+  direction: rtl !important;
+  text-align: center !important;
+}
+
+.cl-formFieldInput,
+.cl-input {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.cl-socialButtonsBlockButton {
+  flex-direction: row-reverse !important;
+}
+
+.cl-formFieldInputShowPasswordButton {
+  left: auto !important;
+  right: 0.75rem !important;
+}
+
+/* Coffee-cup avatar fallback for Clerk user button */
+.cl-avatarBox .cl-avatarImage[src*="gravatar"],
+.cl-avatarBox .cl-avatarImage[src*="clerk"],
+.cl-avatarBox .cl-avatarImage[src=""],
+.cl-avatarBox:not(:has(.cl-avatarImage[src*="googleusercontent"])):not(
+    :has(.cl-avatarImage[src*="github"])
+  ):not(:has(.cl-avatarImage[src*="facebook"]))
+  .cl-avatarImage {
+  opacity: 0;
+}
+
+.cl-avatarBox {
+  position: relative;
+  background: linear-gradient(135deg, #d4a574 0%, #c68b3c 100%) !important;
+}
+
+.cl-avatarBox::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 8h1a4 4 0 1 1 0 8h-1'/%3E%3Cpath d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/%3E%3Cline x1='6' x2='6' y1='2' y2='4'/%3E%3Cline x1='10' x2='10' y1='2' y2='4'/%3E%3Cline x1='14' x2='14' y1='2' y2='4'/%3E%3C/svg%3E");
+  background-size: 55%;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"])::after,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"])::after {
+  display: none;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]),
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) {
+  background: transparent !important;
+}
+
+.cl-avatarBox:has(.cl-avatarImage[src*="googleusercontent"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="github"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="facebook"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="twimg"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="uploadthing"]) .cl-avatarImage,
+.cl-avatarBox:has(.cl-avatarImage[src*="imagekit"]) .cl-avatarImage {
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .cl-card {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-formFieldInput,
+[data-theme="dark"] .cl-input {
+  background: var(--color-muted) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+[data-theme="dark"] .cl-formFieldLabel,
+[data-theme="dark"] .cl-headerTitle,
+[data-theme="dark"] .cl-headerSubtitle,
+[data-theme="dark"] .cl-userButtonPopoverActionButton {
+  color: var(--color-foreground) !important;
+}
+
+[data-theme="dark"] .cl-footerActionText,
+[data-theme="dark"] .cl-dividerText,
+[data-theme="dark"] .cl-navbarButton {
+  color: var(--color-muted-foreground) !important;
+}
+
+[data-theme="dark"] .cl-dividerLine {
+  background: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-socialButtonsBlockButton,
+[data-theme="dark"] .cl-userButtonPopoverCard,
+[data-theme="dark"] .cl-navbar {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-userButtonPopoverActionButton:hover,
+[data-theme="dark"] .cl-navbarButton:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent) !important;
+}
+
+[data-theme="dark"] .cl-navbarButton[data-active="true"] {
+  color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent) !important;
 }
