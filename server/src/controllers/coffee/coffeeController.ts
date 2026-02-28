@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
 import { Prisma } from '../../generated/prisma';
+import { pickAllowedFields } from '../../utils/pickAllowedFields';
 
 // =============================================================================
 // CONTROLLER GUIDE - Everything you need to know about writing controllers
@@ -66,6 +67,21 @@ const parsePositiveInt = (
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(1, parsed));
 };
+
+const COFFEE_UPDATE_FIELDS: readonly (keyof UpdateCoffeeBody)[] = [
+  'roasterId',
+  'name',
+  'roastLevel',
+  'origin',
+  'processingMethod',
+  'elevation',
+  'variety',
+  'notes',
+  'flavorProfile',
+  'rating',
+  'price',
+  'weight',
+] as const;
 
 // -----------------------------------------------------------------------------
 // 2. BASIC CRUD OPERATIONS
@@ -370,7 +386,32 @@ export const updateCoffee = async (
   try {
     const { id } = req.params;
     const userId = req.dbUser!.id;
-    const updateData = req.body;
+
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Request body must be a JSON object',
+      });
+    }
+
+    const { picked: updateData, unknownKeys } = pickAllowedFields<UpdateCoffeeBody>(
+      req.body,
+      COFFEE_UPDATE_FIELDS
+    );
+
+    if (unknownKeys.length > 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: `Unknown fields in payload: ${unknownKeys.join(', ')}`,
+      });
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'At least one valid field is required for update',
+      });
+    }
 
     // Check if record exists first
     const existingCoffee = await prisma.coffee.findUnique({
