@@ -29,6 +29,16 @@ export function SignUpPage() {
     null,
   );
 
+  useEffect(() => {
+    if (step !== "done") return;
+
+    const timer = window.setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [navigate, step]);
+
   if (!isLoaded || !signUp || !setActive) {
     return (
       <AuthLayout
@@ -42,16 +52,6 @@ export function SignUpPage() {
       </AuthLayout>
     );
   }
-
-  useEffect(() => {
-    if (step !== "done") return;
-
-    const timer = window.setTimeout(() => {
-      navigate("/", { replace: true });
-    }, 1200);
-
-    return () => window.clearTimeout(timer);
-  }, [navigate, step]);
 
   const completeSignUp = async (sessionId: string | null) => {
     if (!sessionId) {
@@ -259,7 +259,7 @@ export function SignUpPage() {
                 className="authx-captcha"
                 data-cl-theme="auto"
                 data-cl-size="flexible"
-                data-cl-language="ar"
+                data-cl-language="auto"
               />
 
               <button

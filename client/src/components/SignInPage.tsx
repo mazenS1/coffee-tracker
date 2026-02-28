@@ -82,6 +82,15 @@ export function SignInPage() {
     null,
   );
 
+  useEffect(() => {
+    if (step !== "done") return;
+    const timer = window.setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [navigate, step]);
+
   if (!isLoaded || !signIn || !setActive) {
     return (
       <AuthLayout
@@ -95,15 +104,6 @@ export function SignInPage() {
       </AuthLayout>
     );
   }
-
-  useEffect(() => {
-    if (step !== "done") return;
-    const timer = window.setTimeout(() => {
-      navigate("/", { replace: true });
-    }, 1200);
-
-    return () => window.clearTimeout(timer);
-  }, [navigate, step]);
 
   const clearFlowErrors = () => {
     setErrorMessage(null);
