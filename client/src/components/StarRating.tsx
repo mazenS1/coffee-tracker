@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import { cn } from "../lib/cn";
 
 interface StarRatingProps {
   rating: number;
@@ -23,12 +24,16 @@ export function StarRating({
   const iconSize = sizes[size];
 
   return (
-    <div className="star-rating" dir="ltr">
+    <div className="flex flex-row-reverse gap-0.5 md:gap-1" dir="ltr">
       {[1, 2, 3, 4, 5].map((star) => (
         <motion.button
           key={star}
           type="button"
-          className={`star-button ${star <= rating ? "filled" : ""} ${readonly ? "readonly" : ""}`}
+          className={cn(
+            "rounded p-0.5 transition-colors",
+            star <= rating ? "text-accent" : "text-border",
+            readonly ? "cursor-default" : "cursor-pointer",
+          )}
           onClick={() => !readonly && onRate?.(star)}
           aria-label={readonly ? `تقييم ${rating} من 5` : `اختيار ${star} من 5`}
           whileHover={!readonly ? { scale: 1.2 } : {}}

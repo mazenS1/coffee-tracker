@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Apple, CheckCircle2, Loader2, Lock, Mail } from "lucide-react";
+import { Apple, CheckCircle2, Lock, Mail } from "lucide-react";
 import { useSignIn } from "@clerk/clerk-react";
 import { AuthLayout } from "./AuthLayout";
+import {
+  AuthDivider,
+  AuthErrorBanner,
+  AuthField,
+  AuthLoadingCard,
+  AuthOAuthButton,
+  AuthPrimaryButton,
+  AuthSecondaryLinkButton,
+  AuthStepIndicator,
+  AuthTextInput,
+} from "./AuthPrimitives";
 import {
   OAUTH_REDIRECT_COMPLETE,
   OAUTH_REDIRECT_URL,
@@ -97,10 +108,7 @@ export function SignInPage() {
         title="تسجيل الدخول"
         subtitle="سجّل دخولك لمتابعة رحلتك مع القهوة المختصة"
       >
-        <div className="auth-loading-card">
-          <Loader2 size={24} className="spinner" />
-          <p>جاري تحميل تجربة تسجيل الدخول...</p>
-        </div>
+        <AuthLoadingCard message="جاري تحميل تجربة تسجيل الدخول..." />
       </AuthLayout>
     );
   }
@@ -302,20 +310,28 @@ export function SignInPage() {
       subtitle="سجّل دخولك لمتابعة رحلتك مع القهوة المختصة"
     >
       {step === "done" ? (
-        <div className="authx-done">
-          <CheckCircle2 size={44} />
-          <h3>تم تسجيل الدخول بنجاح</h3>
-          <p>سيتم تحويلك الآن إلى الصفحة الرئيسية...</p>
+        <div className="flex flex-col items-center gap-2 py-5 text-center">
+          <CheckCircle2 size={44} className="text-accent" />
+          <h3 className="font-display text-xl text-foreground">تم تسجيل الدخول بنجاح</h3>
+          <p className="text-sm text-muted-foreground">سيتم تحويلك الآن إلى الصفحة الرئيسية...</p>
         </div>
       ) : (
         <>
-          <p className="authx-step-indicator">الخطوة {stepNumber} من 3</p>
+          <AuthStepIndicator step={stepNumber} />
 
           {step === "form" && (
-            <div className="authx-method-tabs" role="tablist" aria-label="طريقة الدخول">
+            <div
+              className="mb-4 grid grid-cols-2 gap-1 rounded-md border border-border bg-muted p-1"
+              role="tablist"
+              aria-label="طريقة الدخول"
+            >
               <button
                 type="button"
-                className={`authx-method-tab ${method === "password" ? "is-active" : ""}`}
+                className={
+                  method === "password"
+                    ? "min-h-10 rounded-md bg-card px-3 text-sm font-semibold text-foreground shadow-sm"
+                    : "min-h-10 rounded-md px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/70"
+                }
                 onClick={() => {
                   setMethod("password");
                   clearFlowErrors();
@@ -325,7 +341,11 @@ export function SignInPage() {
               </button>
               <button
                 type="button"
-                className={`authx-method-tab ${method === "otp" ? "is-active" : ""}`}
+                className={
+                  method === "otp"
+                    ? "min-h-10 rounded-md bg-card px-3 text-sm font-semibold text-foreground shadow-sm"
+                    : "min-h-10 rounded-md px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/70"
+                }
                 onClick={() => {
                   setMethod("otp");
                   clearFlowErrors();
@@ -336,71 +356,54 @@ export function SignInPage() {
             </div>
           )}
 
-          {errorMessage && <div className="authx-error">{errorMessage}</div>}
+          {errorMessage && <AuthErrorBanner message={errorMessage} />}
 
           {step === "form" ? (
-            <form className="authx-form" onSubmit={handleSubmitForm}>
-              <label className="authx-field">
-                <span>البريد الإلكتروني</span>
-                <div className="authx-input-wrap">
-                  <Mail size={17} />
-                  <input
-                    className="authx-input"
-                    type="email"
-                    dir="ltr"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="name@example.com"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-              </label>
+            <form className="flex flex-col gap-3" onSubmit={handleSubmitForm}>
+              <AuthField label="البريد الإلكتروني">
+                <AuthTextInput
+                  icon={<Mail size={17} />}
+                  type="email"
+                  dir="ltr"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  required
+                />
+              </AuthField>
 
               {method === "password" && (
-                <label className="authx-field">
-                  <span>كلمة المرور</span>
-                  <div className="authx-input-wrap">
-                    <Lock size={17} />
-                    <input
-                      className="authx-input"
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </div>
-                </label>
+                <AuthField label="كلمة المرور">
+                  <AuthTextInput
+                    icon={<Lock size={17} />}
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                  />
+                </AuthField>
               )}
 
-              <button
-                className="authx-primary-btn"
-                type="submit"
+              <AuthPrimaryButton
                 disabled={isSubmitting || oauthLoading !== null}
+                loading={isSubmitting}
+                loadingText="جاري التحقق..."
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="spinner" />
-                    جاري التحقق...
-                  </>
-                ) : method === "password" ? (
-                  "متابعة"
-                ) : (
-                  "إرسال رمز التحقق"
-                )}
-              </button>
+                {method === "password" ? "متابعة" : "إرسال رمز التحقق"}
+              </AuthPrimaryButton>
             </form>
           ) : (
-            <form className="authx-form" onSubmit={handleVerifyOtp}>
-              <p className="authx-otp-hint">
+            <form className="flex flex-col gap-3" onSubmit={handleVerifyOtp}>
+              <p className="text-center text-sm text-muted-foreground">
                 أدخل الرمز المرسل إلى {otpContext?.safeIdentifier ?? email}
               </p>
-              <label className="authx-field">
-                <span>رمز التحقق</span>
-                <input
-                  className="authx-input authx-otp-input"
+              <AuthField label="رمز التحقق">
+                <AuthTextInput
+                  icon={<Mail size={17} />}
+                  className="text-center tracking-[0.2em]"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -410,35 +413,24 @@ export function SignInPage() {
                   maxLength={6}
                   required
                 />
-              </label>
+              </AuthField>
 
-              <button
-                className="authx-primary-btn"
-                type="submit"
+              <AuthPrimaryButton
                 disabled={isSubmitting || isResending || oauthLoading !== null}
+                loading={isSubmitting}
+                loadingText="جاري التأكيد..."
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="spinner" />
-                    جاري التأكيد...
-                  </>
-                ) : (
-                  "تأكيد الرمز"
-                )}
-              </button>
+                تأكيد الرمز
+              </AuthPrimaryButton>
 
-              <div className="authx-secondary-actions">
-                <button
-                  className="authx-link-btn"
-                  type="button"
+              <div className="mt-1 flex justify-between gap-3">
+                <AuthSecondaryLinkButton
                   onClick={handleResendCode}
                   disabled={isResending || isSubmitting}
                 >
                   {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
-                </button>
-                <button
-                  className="authx-link-btn"
-                  type="button"
+                </AuthSecondaryLinkButton>
+                <AuthSecondaryLinkButton
                   onClick={() => {
                     setStep("form");
                     setCode("");
@@ -448,48 +440,41 @@ export function SignInPage() {
                   disabled={isSubmitting}
                 >
                   رجوع
-                </button>
+                </AuthSecondaryLinkButton>
               </div>
             </form>
           )}
 
-          <div className="authx-divider" aria-hidden="true">
-            <span />
-            <p>أو تابع باستخدام</p>
-            <span />
-          </div>
+          <AuthDivider label="أو تابع باستخدام" />
 
-          <div className="authx-oauth-grid">
-            <button
-              type="button"
-              className="authx-oauth-btn"
+          <div className="grid grid-cols-2 gap-2">
+            <AuthOAuthButton
               onClick={() => handleOAuth("oauth_google")}
               disabled={isSubmitting || isResending || oauthLoading !== null}
+              loading={oauthLoading === "oauth_google"}
+              icon={
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-white text-[11px] font-black text-red-600">
+                  G
+                </span>
+              }
             >
-              {oauthLoading === "oauth_google" ? (
-                <Loader2 size={16} className="spinner" />
-              ) : (
-                <span className="authx-oauth-badge">G</span>
-              )}
               Google
-            </button>
-            <button
-              type="button"
-              className="authx-oauth-btn"
+            </AuthOAuthButton>
+            <AuthOAuthButton
               onClick={() => handleOAuth("oauth_apple")}
               disabled={isSubmitting || isResending || oauthLoading !== null}
+              loading={oauthLoading === "oauth_apple"}
+              icon={<Apple size={16} />}
             >
-              {oauthLoading === "oauth_apple" ? (
-                <Loader2 size={16} className="spinner" />
-              ) : (
-                <Apple size={16} />
-              )}
               Apple
-            </button>
+            </AuthOAuthButton>
           </div>
 
-          <p className="authx-switch-link">
-            لا تملك حساباً بعد؟ <Link to="/sign-up">أنشئ حسابك</Link>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            لا تملك حساباً بعد؟{" "}
+            <Link className="font-bold text-accent hover:underline" to="/sign-up">
+              أنشئ حسابك
+            </Link>
           </p>
         </>
       )}

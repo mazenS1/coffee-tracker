@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { cn } from "../lib/cn";
 
 export function ThemeToggle() {
   const [isDark, setIsDark] = useState(() => {
@@ -31,7 +32,10 @@ export function ThemeToggle() {
 
   return (
     <motion.button
-      className="theme-toggle"
+      className={cn(
+        "inline-flex size-10 items-center justify-center rounded-full border border-border bg-card",
+        "text-foreground shadow-sm transition-colors hover:bg-muted md:size-11",
+      )}
       onClick={() => setIsDark(!isDark)}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}

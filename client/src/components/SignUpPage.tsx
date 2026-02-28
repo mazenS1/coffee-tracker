@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Apple, CheckCircle2, Loader2, Lock, Mail, User } from "lucide-react";
+import { Apple, CheckCircle2, Lock, Mail, User } from "lucide-react";
 import { useSignUp } from "@clerk/clerk-react";
 import { AuthLayout } from "./AuthLayout";
+import {
+  AuthDivider,
+  AuthErrorBanner,
+  AuthField,
+  AuthLoadingCard,
+  AuthOAuthButton,
+  AuthPrimaryButton,
+  AuthSecondaryLinkButton,
+  AuthStepIndicator,
+  AuthTextInput,
+} from "./AuthPrimitives";
 import {
   OAUTH_REDIRECT_COMPLETE,
   OAUTH_REDIRECT_URL,
@@ -45,10 +56,7 @@ export function SignUpPage() {
         title="إنشاء حساب"
         subtitle="أنشئ حسابك وابدأ بتتبع تجارب القهوة بكل تفاصيلها"
       >
-        <div className="auth-loading-card">
-          <Loader2 size={24} className="spinner" />
-          <p>جاري تحميل تجربة إنشاء الحساب...</p>
-        </div>
+        <AuthLoadingCard message="جاري تحميل تجربة إنشاء الحساب..." />
       </AuthLayout>
     );
   }
@@ -173,119 +181,96 @@ export function SignUpPage() {
       subtitle="أنشئ حسابك وابدأ بتتبع تجارب القهوة بكل تفاصيلها"
     >
       {step === "done" ? (
-        <div className="authx-done">
-          <CheckCircle2 size={44} />
-          <h3>تم إنشاء الحساب بنجاح</h3>
-          <p>أهلاً بك. سيتم تحويلك الآن إلى التطبيق.</p>
+        <div className="flex flex-col items-center gap-2 py-5 text-center">
+          <CheckCircle2 size={44} className="text-accent" />
+          <h3 className="font-display text-xl text-foreground">تم إنشاء الحساب بنجاح</h3>
+          <p className="text-sm text-muted-foreground">أهلاً بك. سيتم تحويلك الآن إلى التطبيق.</p>
         </div>
       ) : (
         <>
-          <p className="authx-step-indicator">الخطوة {stepNumber} من 3</p>
+          <AuthStepIndicator step={stepNumber} />
 
-          {errorMessage && <div className="authx-error">{errorMessage}</div>}
+          {errorMessage && <AuthErrorBanner message={errorMessage} />}
 
           {step === "form" ? (
-            <form className="authx-form" onSubmit={handleCreateAccount}>
-              <div className="authx-name-row">
-                <label className="authx-field">
-                  <span>الاسم الأول</span>
-                  <div className="authx-input-wrap">
-                    <User size={17} />
-                    <input
-                      className="authx-input"
-                      type="text"
-                      value={firstName}
-                      onChange={(event) => setFirstName(event.target.value)}
-                      placeholder="الاسم الأول"
-                      autoComplete="given-name"
-                      required
-                    />
-                  </div>
-                </label>
+            <form className="flex flex-col gap-3" onSubmit={handleCreateAccount}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <AuthField label="الاسم الأول">
+                  <AuthTextInput
+                    icon={<User size={17} />}
+                    type="text"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    placeholder="الاسم الأول"
+                    autoComplete="given-name"
+                    required
+                  />
+                </AuthField>
 
-                <label className="authx-field">
-                  <span>اسم العائلة</span>
-                  <div className="authx-input-wrap">
-                    <User size={17} />
-                    <input
-                      className="authx-input"
-                      type="text"
-                      value={lastName}
-                      onChange={(event) => setLastName(event.target.value)}
-                      placeholder="اسم العائلة"
-                      autoComplete="family-name"
-                      required
-                    />
-                  </div>
-                </label>
+                <AuthField label="اسم العائلة">
+                  <AuthTextInput
+                    icon={<User size={17} />}
+                    type="text"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    placeholder="اسم العائلة"
+                    autoComplete="family-name"
+                    required
+                  />
+                </AuthField>
               </div>
 
-              <label className="authx-field">
-                <span>البريد الإلكتروني</span>
-                <div className="authx-input-wrap">
-                  <Mail size={17} />
-                  <input
-                    className="authx-input"
-                    type="email"
-                    dir="ltr"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="name@example.com"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-              </label>
+              <AuthField label="البريد الإلكتروني">
+                <AuthTextInput
+                  icon={<Mail size={17} />}
+                  type="email"
+                  dir="ltr"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  required
+                />
+              </AuthField>
 
-              <label className="authx-field">
-                <span>كلمة المرور</span>
-                <div className="authx-input-wrap">
-                  <Lock size={17} />
-                  <input
-                    className="authx-input"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="8 أحرف على الأقل"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                  />
-                </div>
-              </label>
+              <AuthField label="كلمة المرور">
+                <AuthTextInput
+                  icon={<Lock size={17} />}
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="8 أحرف على الأقل"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                />
+              </AuthField>
 
               <div
                 id="clerk-captcha"
-                className="authx-captcha"
+                className="mt-1"
                 data-cl-theme="auto"
                 data-cl-size="flexible"
                 data-cl-language="auto"
               />
 
-              <button
-                className="authx-primary-btn"
-                type="submit"
+              <AuthPrimaryButton
                 disabled={isSubmitting || oauthLoading !== null}
+                loading={isSubmitting}
+                loadingText="جاري إنشاء الحساب..."
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="spinner" />
-                    جاري إنشاء الحساب...
-                  </>
-                ) : (
-                  "إنشاء الحساب وإرسال الرمز"
-                )}
-              </button>
+                إنشاء الحساب وإرسال الرمز
+              </AuthPrimaryButton>
             </form>
           ) : (
-            <form className="authx-form" onSubmit={handleVerifyOtp}>
-              <p className="authx-otp-hint">
+            <form className="flex flex-col gap-3" onSubmit={handleVerifyOtp}>
+              <p className="text-center text-sm text-muted-foreground">
                 أدخل رمز التحقق المرسل إلى {email.trim()}
               </p>
-              <label className="authx-field">
-                <span>رمز التحقق</span>
-                <input
-                  className="authx-input authx-otp-input"
+              <AuthField label="رمز التحقق">
+                <AuthTextInput
+                  icon={<Mail size={17} />}
+                  className="text-center tracking-[0.2em]"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -295,35 +280,24 @@ export function SignUpPage() {
                   maxLength={6}
                   required
                 />
-              </label>
+              </AuthField>
 
-              <button
-                className="authx-primary-btn"
-                type="submit"
+              <AuthPrimaryButton
                 disabled={isSubmitting || isResending || oauthLoading !== null}
+                loading={isSubmitting}
+                loadingText="جاري التأكيد..."
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="spinner" />
-                    جاري التأكيد...
-                  </>
-                ) : (
-                  "تأكيد الرمز"
-                )}
-              </button>
+                تأكيد الرمز
+              </AuthPrimaryButton>
 
-              <div className="authx-secondary-actions">
-                <button
-                  className="authx-link-btn"
-                  type="button"
+              <div className="mt-1 flex justify-between gap-3">
+                <AuthSecondaryLinkButton
                   onClick={handleResendCode}
                   disabled={isResending || isSubmitting}
                 >
                   {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
-                </button>
-                <button
-                  className="authx-link-btn"
-                  type="button"
+                </AuthSecondaryLinkButton>
+                <AuthSecondaryLinkButton
                   onClick={() => {
                     setStep("form");
                     setCode("");
@@ -332,48 +306,41 @@ export function SignUpPage() {
                   disabled={isSubmitting}
                 >
                   رجوع
-                </button>
+                </AuthSecondaryLinkButton>
               </div>
             </form>
           )}
 
-          <div className="authx-divider" aria-hidden="true">
-            <span />
-            <p>أو استخدم</p>
-            <span />
-          </div>
+          <AuthDivider label="أو استخدم" />
 
-          <div className="authx-oauth-grid">
-            <button
-              type="button"
-              className="authx-oauth-btn"
+          <div className="grid grid-cols-2 gap-2">
+            <AuthOAuthButton
               onClick={() => handleOAuth("oauth_google")}
               disabled={isSubmitting || isResending || oauthLoading !== null}
+              loading={oauthLoading === "oauth_google"}
+              icon={
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-white text-[11px] font-black text-red-600">
+                  G
+                </span>
+              }
             >
-              {oauthLoading === "oauth_google" ? (
-                <Loader2 size={16} className="spinner" />
-              ) : (
-                <span className="authx-oauth-badge">G</span>
-              )}
               Google
-            </button>
-            <button
-              type="button"
-              className="authx-oauth-btn"
+            </AuthOAuthButton>
+            <AuthOAuthButton
               onClick={() => handleOAuth("oauth_apple")}
               disabled={isSubmitting || isResending || oauthLoading !== null}
+              loading={oauthLoading === "oauth_apple"}
+              icon={<Apple size={16} />}
             >
-              {oauthLoading === "oauth_apple" ? (
-                <Loader2 size={16} className="spinner" />
-              ) : (
-                <Apple size={16} />
-              )}
               Apple
-            </button>
+            </AuthOAuthButton>
           </div>
 
-          <p className="authx-switch-link">
-            لديك حساب بالفعل؟ <Link to="/sign-in">تسجيل الدخول</Link>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            لديك حساب بالفعل؟{" "}
+            <Link className="font-bold text-accent hover:underline" to="/sign-in">
+              تسجيل الدخول
+            </Link>
           </p>
         </>
       )}
