@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -13,9 +13,13 @@ import {
 import type { Coffee, Cup } from "@coffee-tracker/shared";
 import { getBrewMethodLabel, getRoastLevelLabel } from "@coffee-tracker/shared";
 import { useCoffeeStore } from "../store/coffeeStore";
-import { AddCupForm } from "./AddCupForm";
 import { StarRating } from "./StarRating";
 import { Button } from "./ui/button";
+
+const AddCupForm = lazy(async () => {
+  const module = await import("./AddCupForm");
+  return { default: module.AddCupForm };
+});
 
 interface CoffeeDetailProps {
   coffeeId: string;
@@ -351,19 +355,23 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
 
       <AnimatePresence>
         {showAddCup ? (
-          <AddCupForm
-            key={`cup-add-${coffeeId}`}
-            coffeeId={coffeeId}
-            onClose={() => setShowAddCup(false)}
-          />
+          <Suspense fallback={null}>
+            <AddCupForm
+              key={`cup-add-${coffeeId}`}
+              coffeeId={coffeeId}
+              onClose={() => setShowAddCup(false)}
+            />
+          </Suspense>
         ) : null}
         {editingCup ? (
-          <AddCupForm
-            key={`cup-edit-${editingCup.id}`}
-            coffeeId={coffeeId}
-            cup={editingCup}
-            onClose={() => setEditingCup(null)}
-          />
+          <Suspense fallback={null}>
+            <AddCupForm
+              key={`cup-edit-${editingCup.id}`}
+              coffeeId={coffeeId}
+              cup={editingCup}
+              onClose={() => setEditingCup(null)}
+            />
+          </Suspense>
         ) : null}
       </AnimatePresence>
     </motion.div>

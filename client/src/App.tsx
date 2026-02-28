@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -15,16 +15,32 @@ import {
   useAuth,
 } from "@clerk/clerk-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
-import { AddCoffeeForm } from "./components/AddCoffeeForm";
 import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
-import { CoffeeDetail } from "./components/CoffeeDetail";
-import { SignInPage } from "./components/SignInPage";
-import { SignUpPage } from "./components/SignUpPage";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+
+const CoffeeDetail = lazy(async () => {
+  const module = await import("./components/CoffeeDetail");
+  return { default: module.CoffeeDetail };
+});
+
+const AddCoffeeForm = lazy(async () => {
+  const module = await import("./components/AddCoffeeForm");
+  return { default: module.AddCoffeeForm };
+});
+
+const SignInPage = lazy(async () => {
+  const module = await import("./components/SignInPage");
+  return { default: module.SignInPage };
+});
+
+const SignUpPage = lazy(async () => {
+  const module = await import("./components/SignUpPage");
+  return { default: module.SignUpPage };
+});
 
 function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
@@ -83,12 +99,14 @@ function HomePage() {
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
-          <CoffeeDetail
-            key={`detail-${selectedCoffeeId}`}
-            coffeeId={selectedCoffeeId}
-            coffee={selectedCoffee}
-            onBack={() => setSelectedCoffee(null)}
-          />
+          <Suspense fallback={<PageLoadingFallback label="جاري تحميل تفاصيل القهوة..." />}>
+            <CoffeeDetail
+              key={`detail-${selectedCoffeeId}`}
+              coffeeId={selectedCoffeeId}
+              coffee={selectedCoffee}
+              onBack={() => setSelectedCoffee(null)}
+            />
+          </Suspense>
         ) : (
           <motion.main
             key="home"
@@ -316,8 +334,23 @@ function HomePage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showAddCoffee ? <AddCoffeeForm onClose={() => setShowAddCoffee(false)} /> : null}
+        {showAddCoffee ? (
+          <Suspense fallback={null}>
+            <AddCoffeeForm onClose={() => setShowAddCoffee(false)} />
+          </Suspense>
+        ) : null}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function PageLoadingFallback({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4" dir="rtl">
+      <div className="rounded-xl border border-border bg-card p-6 text-center">
+        <Loader2 className="mx-auto animate-spin text-accent" size={30} />
+        <p className="mt-3 text-sm text-muted-foreground">{label}</p>
+      </div>
     </div>
   );
 }
@@ -326,14 +359,7 @@ function SignedOutOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background px-4" dir="rtl">
-        <div className="rounded-xl border border-border bg-card p-6 text-center">
-          <Loader2 className="mx-auto animate-spin text-accent" size={30} />
-          <p className="mt-3 text-sm text-muted-foreground">جاري تحميل المصادقة...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingFallback label="جاري تحميل المصادقة..." />;
   }
 
   if (isSignedIn) {
@@ -371,7 +397,9 @@ function AppRoutes() {
         path="/sign-in"
         element={
           <SignedOutOnlyRoute>
-            <SignInPage />
+            <Suspense fallback={<PageLoadingFallback label="جاري تحميل صفحة الدخول..." />}>
+              <SignInPage />
+            </Suspense>
           </SignedOutOnlyRoute>
         }
       />
@@ -379,7 +407,9 @@ function AppRoutes() {
         path="/sign-up"
         element={
           <SignedOutOnlyRoute>
-            <SignUpPage />
+            <Suspense fallback={<PageLoadingFallback label="جاري تحميل صفحة التسجيل..." />}>
+              <SignUpPage />
+            </Suspense>
           </SignedOutOnlyRoute>
         }
       />
