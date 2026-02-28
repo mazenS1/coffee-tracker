@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Plus,
-  Coffee as CoffeeIcon,
-  Search,
-  Loader2,
   ArrowRight,
+  Coffee as CoffeeIcon,
+  Loader2,
+  Plus,
+  Search,
 } from "lucide-react";
 import {
   AuthenticateWithRedirectCallback,
@@ -15,15 +15,16 @@ import {
   useAuth,
 } from "@clerk/clerk-react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
-import { useCoffeeStore } from "./store/coffeeStore";
+import { AddCoffeeForm } from "./components/AddCoffeeForm";
+import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
 import { CoffeeDetail } from "./components/CoffeeDetail";
-import { AddCoffeeForm } from "./components/AddCoffeeForm";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { AuthProvider } from "./components/AuthProvider";
 import { SignInPage } from "./components/SignInPage";
 import { SignUpPage } from "./components/SignUpPage";
-import "./App.css";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { useCoffeeStore } from "./store/coffeeStore";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 
 function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
@@ -54,18 +55,31 @@ function HomePage() {
       hasMountedSearch.current = true;
       return;
     }
-    const timer = setTimeout(() => {
+
+    const timeout = setTimeout(() => {
       fetchCoffees({ search: searchQuery || undefined });
     }, 300);
-    return () => clearTimeout(timer);
+
+    return () => clearTimeout(timeout);
   }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
 
-  const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
+  const totalCups = useMemo(
+    () => coffees.reduce((acc, coffee) => acc + (coffee._count?.cups || 0), 0),
+    [coffees],
+  );
 
   return (
-    <div className="app" dir="rtl">
-      <div className="background-pattern" />
-      <div className="background-glow" />
+    <div className="relative min-h-dvh overflow-x-hidden bg-background" dir="rtl">
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a2c17' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          }}
+        />
+        <div className="absolute -right-1/4 -top-1/3 h-[38rem] w-[38rem] rounded-full bg-accent/15 blur-3xl" />
+      </div>
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
@@ -78,32 +92,34 @@ function HomePage() {
         ) : (
           <motion.main
             key="home"
-            className="home"
+            className="relative z-10 mx-auto max-w-6xl px-4 pb-28 pt-4 md:px-6 md:pb-32 md:pt-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <header className="app-header">
-              <div className="header-leading">
-                <motion.div
-                  className="header-stats"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <div className="header-stat">
-                    <span className="stat-number">{coffees.length}</span>
-                    <span className="stat-text">قهوة</span>
-                  </div>
-                  <div className="header-stat">
-                    <span className="stat-number">{totalCups}</span>
-                    <span className="stat-text">فنجان</span>
-                  </div>
-                </motion.div>
-              </div>
+            <header className="mb-6 flex min-h-12 items-center justify-between gap-2 md:mb-8">
+              <motion.div
+                className="flex min-w-24 items-center gap-1.5"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="rounded-lg border border-border bg-card px-2 py-1 text-center md:px-3">
+                  <span className="block font-display text-base font-bold text-accent md:text-xl">
+                    {coffees.length}
+                  </span>
+                  <span className="block text-[10px] uppercase text-muted-foreground">قهوة</span>
+                </div>
+                <div className="rounded-lg border border-border bg-card px-2 py-1 text-center md:px-3">
+                  <span className="block font-display text-base font-bold text-accent md:text-xl">
+                    {totalCups}
+                  </span>
+                  <span className="block text-[10px] uppercase text-muted-foreground">فنجان</span>
+                </div>
+              </motion.div>
 
               <motion.h1
-                className="app-title"
+                className="font-display text-lg font-semibold text-foreground md:text-2xl"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
@@ -111,17 +127,18 @@ function HomePage() {
                 دفتر القهوة
               </motion.h1>
 
-              <div className="header-trailing">
+              <div className="flex min-w-24 items-center justify-end gap-2 md:min-w-32">
                 <ThemeToggle />
-
                 <motion.div
-                  className="auth-buttons"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
-                    <Link to="/sign-in" className="auth-button sign-in">
+                    <Link
+                      to="/sign-in"
+                      className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
                       دخول
                     </Link>
                   </SignedOut>
@@ -133,7 +150,7 @@ function HomePage() {
                           avatarBox: {
                             width: 36,
                             height: 36,
-                            border: "2px solid var(--accent, #c68b3c)",
+                            border: "2px solid var(--color-accent, #c68b3c)",
                           },
                           userButtonPopoverCard: {
                             direction: "rtl",
@@ -160,72 +177,77 @@ function HomePage() {
             </header>
 
             <motion.div
-              className="search-bar"
+              className="mb-8 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 shadow-sm md:mb-10 md:px-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Search size={20} />
-              <input
+              <Search size={19} className="text-muted-foreground" />
+              <Input
+                className="h-auto border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0"
                 type="text"
                 placeholder="ابحث عن قهوة، محمصة، أو بلد..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(event) => setSearchQuery(event.target.value)}
               />
             </motion.div>
 
-            {error && (
+            {error ? (
               <motion.div
-                className="error-message"
+                className="mb-4 rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 {error}
               </motion.div>
-            )}
+            ) : null}
 
             <SignedIn>
-              <section className="coffees-grid">
+              <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence mode="popLayout">
                   {isLoading ? (
                     <motion.div
-                      className="loading-state"
+                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
-                      <Loader2 className="spinner" size={48} />
-                      <p>جاري التحميل...</p>
+                      <Loader2 size={46} className="mx-auto animate-spin text-accent" />
+                      <p className="mt-3 text-sm text-muted-foreground">جاري التحميل...</p>
                     </motion.div>
                   ) : coffees.length === 0 && !searchQuery ? (
                     <motion.div
-                      className="empty-state"
+                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4 }}
                     >
-                      <div className="empty-illustration">
-                        <CoffeeIcon size={64} />
+                      <div className="mx-auto mb-4 inline-flex size-20 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30">
+                        <CoffeeIcon size={38} />
                       </div>
-                      <h2>ابدأ رحلتك</h2>
-                      <p>أضف أول قهوة لك وابدأ بتتبع تجاربك</p>
-                      <motion.button
-                        className="empty-add-button"
+                      <h2 className="font-display text-2xl font-semibold text-foreground">
+                        ابدأ رحلتك
+                      </h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        أضف أول قهوة لك وابدأ بتتبع تجاربك
+                      </p>
+                      <Button
+                        type="button"
+                        className="mt-4"
                         onClick={() => setShowAddCoffee(true)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
                       >
-                        <Plus size={20} />
+                        <Plus size={18} />
                         إضافة قهوة جديدة
-                      </motion.button>
+                      </Button>
                     </motion.div>
                   ) : coffees.length === 0 ? (
                     <motion.div
-                      className="no-results"
+                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
-                      <Search size={48} />
-                      <p>لم نجد نتائج لـ "{searchQuery}"</p>
+                      <Search size={40} className="mx-auto text-muted-foreground" />
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        لم نجد نتائج لـ "{searchQuery}"
+                      </p>
                     </motion.div>
                   ) : (
                     coffees.map((coffee, index) => (
@@ -240,44 +262,52 @@ function HomePage() {
                 </AnimatePresence>
               </section>
 
-              {coffees.length > 0 && (
+              {coffees.length > 0 ? (
                 <motion.button
-                  className="fab"
+                  type="button"
+                  className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-4 z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/40 md:bottom-6 md:left-6 md:size-16"
                   onClick={() => setShowAddCoffee(true)}
                   initial={{ opacity: 0, scale: 0, rotate: -180 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
+                  aria-label="إضافة قهوة جديدة"
                 >
                   <Plus size={28} />
                 </motion.button>
-              )}
+              ) : null}
             </SignedIn>
 
             <SignedOut>
               <motion.section
-                className="signed-out-message"
+                className="rounded-xl border border-border bg-card p-8 text-center"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <div className="empty-illustration">
-                  <CoffeeIcon size={64} />
+                <div className="mx-auto mb-4 inline-flex size-20 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30">
+                  <CoffeeIcon size={38} />
                 </div>
-                <h2>مرحباً بك في دفتر القهوة</h2>
-                <p>سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة</p>
-                <div className="signed-out-actions">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Link to="/sign-in" className="empty-add-button">
-                      تسجيل الدخول
-                    </Link>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Link to="/sign-up" className="secondary-auth-button">
-                      إنشاء حساب
-                    </Link>
-                  </motion.div>
+                <h2 className="font-display text-2xl font-semibold text-foreground">
+                  مرحباً بك في دفتر القهوة
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Link
+                    to="/sign-in"
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    تسجيل الدخول
+                  </Link>
+                  <Link
+                    to="/sign-up"
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                  >
+                    إنشاء حساب
+                  </Link>
                 </div>
               </motion.section>
             </SignedOut>
@@ -286,9 +316,7 @@ function HomePage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showAddCoffee && (
-          <AddCoffeeForm onClose={() => setShowAddCoffee(false)} />
-        )}
+        {showAddCoffee ? <AddCoffeeForm onClose={() => setShowAddCoffee(false)} /> : null}
       </AnimatePresence>
     </div>
   );
@@ -299,13 +327,10 @@ function SignedOutOnlyRoute({ children }: { children: React.ReactNode }) {
 
   if (!isLoaded) {
     return (
-      <div className="auth-page" dir="rtl">
-        <div className="auth-background" />
-        <div className="auth-container">
-          <div className="auth-card auth-loading-card">
-            <Loader2 className="spinner" size={30} />
-            <p>جاري تحميل المصادقة...</p>
-          </div>
+      <div className="flex min-h-dvh items-center justify-center bg-background px-4" dir="rtl">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
+          <Loader2 className="mx-auto animate-spin text-accent" size={30} />
+          <p className="mt-3 text-sm text-muted-foreground">جاري تحميل المصادقة...</p>
         </div>
       </div>
     );
@@ -320,22 +345,19 @@ function SignedOutOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function SsoCallbackPage() {
   return (
-    <div className="auth-page" dir="rtl">
-      <div className="auth-background" />
-      <div className="auth-container">
-        <div className="auth-card auth-loading-card">
-          <div className="auth-callback-icon">
-            <ArrowRight size={22} />
-          </div>
-          <h2 className="auth-callback-title">جاري إتمام تسجيل الدخول</h2>
-          <p className="auth-callback-subtitle">لا تغلق هذه الصفحة</p>
-          <AuthenticateWithRedirectCallback
-            signInFallbackRedirectUrl="/"
-            signUpFallbackRedirectUrl="/"
-            signInUrl="/sign-in"
-            signUpUrl="/sign-up"
-          />
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4" dir="rtl">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
+        <div className="mx-auto inline-flex size-11 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <ArrowRight size={22} />
         </div>
+        <h2 className="mt-3 font-display text-2xl text-foreground">جاري إتمام تسجيل الدخول</h2>
+        <p className="mt-1 text-sm text-muted-foreground">لا تغلق هذه الصفحة</p>
+        <AuthenticateWithRedirectCallback
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        />
       </div>
     </div>
   );

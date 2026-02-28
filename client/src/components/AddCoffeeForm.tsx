@@ -1,63 +1,76 @@
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, ChevronDown, ChevronUp, Coffee, MapPin, Flame, MessageSquare, Sparkles, ChevronLeft } from "lucide-react";
-import { useCoffeeStore } from "../store/coffeeStore";
-import type { RoastLevel, CreateCoffeeInput } from "@coffee-tracker/shared";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  ChevronDown,
+  Coffee,
+  Flame,
+  MapPin,
+  MessageSquare,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { ROAST_LEVEL_LABELS } from "@coffee-tracker/shared";
+import type { CreateCoffeeInput, RoastLevel } from "@coffee-tracker/shared";
 import { COFFEE_COUNTRIES, getFlagEmoji } from "../data/countries";
 import { DEFAULT_ROASTERS } from "../data/roasters";
+import { useCoffeeStore } from "../store/coffeeStore";
+import { cn } from "../lib/cn";
+import {
+  FormModalHeader,
+  SectionNextButton,
+} from "./forms/shared";
+import {
+  COFFEE_QUICK_NOTE_OPTIONS,
+  serializeQuickNotes,
+} from "./forms/quickNotes";
+import { AccordionSection } from "./ui/accordion-section";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ModalShell } from "./ui/modal-shell";
 
 const PREFILL_PREFIX = "prefill:";
-
-/** Roaster option: either from API (has id) or prefilled (value = prefill:name) */
-function getRoasterOptions(roasters: { id: string; name: string }[]) {
-  const apiNames = new Set(roasters.map((r) => r.name));
-  const prefilledOnly = DEFAULT_ROASTERS.filter((name) => !apiNames.has(name));
-  const options: { value: string; label: string }[] = [
-    ...roasters.map((r) => ({ value: r.id, label: r.name })),
-    ...prefilledOnly.map((name) => ({ value: `${PREFILL_PREFIX}${name}`, label: name })),
-  ];
-  return options.sort((a, b) => a.label.localeCompare(b.label, "ar"));
-}
 
 interface AddCoffeeFormProps {
   onClose: () => void;
 }
 
-const COFFEE_QUICK_NOTE_OPTIONS = [
-  { value: "Fruity", label: "فواكه", emoji: "🍎" },
-  { value: "Chocolatey", label: "شوكولاتة", emoji: "🍫" },
-  { value: "Classic", label: "كلاسيكي", emoji: "☕" },
-  { value: "Nutty", label: "مكسرات", emoji: "🥜" },
-  { value: "Floral", label: "زهري", emoji: "🌸" },
-  { value: "Citrusy", label: "حمضيات", emoji: "🍋" },
-  { value: "Sweet", label: "حلاوة", emoji: "🍯" },
-  { value: "Caramelly", label: "كراميل", emoji: "🍮" },
-  { value: "Spicy", label: "بهارات", emoji: "🌶️" },
-] as const;
-
-const serializeQuickNotes = (notes: string[]) =>
-  notes.map((note) => note.trim()).filter(Boolean).join(", ");
-
 type SectionId = "basic" | "roast" | "flavor" | "notes";
-
 const SECTION_ORDER: SectionId[] = ["basic", "roast", "flavor", "notes"];
+
+type CoffeeFormState = {
+  roasterId: string;
+  origin: string;
+  name: string;
+  roastLevel: RoastLevel;
+  quickNotes: string[];
+  notes: string;
+};
+
+const roastLevels: RoastLevel[] = ["LIGHT", "MEDIUM", "MEDIUM_DARK", "DARK"];
+
+const selectClassName =
+  "h-11 w-full appearance-none rounded-md border border-border bg-muted px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2";
+
+function getRoasterOptions(roasters: { id: string; name: string }[]) {
+  const apiNames = new Set(roasters.map((r) => r.name));
+  const prefilledOnly = DEFAULT_ROASTERS.filter((name) => !apiNames.has(name));
+  const options: { value: string; label: string }[] = [
+    ...roasters.map((r) => ({ value: r.id, label: r.name })),
+    ...prefilledOnly.map((name) => ({
+      value: `${PREFILL_PREFIX}${name}`,
+      label: name,
+    })),
+  ];
+  return options.sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}
 
 export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
   const { addCoffee, addRoaster, roasters, fetchCoffees } = useCoffeeStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNewRoaster, setShowNewRoaster] = useState(false);
   const [newRoasterName, setNewRoasterName] = useState("");
-  const [expandedSection, setExpandedSection] = useState<SectionId | null>("basic");
-
-  const [formData, setFormData] = useState<{
-    roasterId: string;
-    origin: string;
-    name: string;
-    roastLevel: RoastLevel;
-    quickNotes: string[];
-    notes: string;
-  }>({
+  const [expandedSection, setExpandedSection] = useState<SectionId>("basic");
+  const [formData, setFormData] = useState<CoffeeFormState>({
     roasterId: "",
     origin: "",
     name: "",
@@ -65,72 +78,6 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
     quickNotes: [],
     notes: "",
   });
-
-  const toggleQuickNote = (note: string) => {
-    setFormData((prev) => {
-      const exists = prev.quickNotes.includes(note);
-
-      return {
-        ...prev,
-        quickNotes: exists
-          ? prev.quickNotes.filter((item) => item !== note)
-          : [...prev.quickNotes, note],
-      };
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.roasterId || !formData.name) return;
-
-    setIsSubmitting(true);
-    try {
-      let roasterId = formData.roasterId;
-      if (roasterId.startsWith(PREFILL_PREFIX)) {
-        const roasterName = roasterId.slice(PREFILL_PREFIX.length);
-        const roaster = await addRoaster(roasterName);
-        if (!roaster) return;
-        roasterId = roaster.id;
-      }
-
-      const coffeeInput: CreateCoffeeInput = {
-        roasterId,
-        name: formData.name,
-        origin: formData.origin || undefined,
-        roastLevel: formData.roastLevel,
-        flavorProfile: serializeQuickNotes(formData.quickNotes) || undefined,
-        notes: formData.notes || undefined,
-      };
-      await addCoffee(coffeeInput);
-      await fetchCoffees();
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddRoaster = async () => {
-    if (!newRoasterName.trim()) return;
-    const roaster = await addRoaster(newRoasterName.trim());
-    if (roaster) {
-      setFormData({ ...formData, roasterId: roaster.id });
-      setNewRoasterName("");
-      setShowNewRoaster(false);
-    }
-  };
-
-  const roastLevels: RoastLevel[] = ["LIGHT", "MEDIUM", "MEDIUM_DARK", "DARK"];
-
-  const toggleSection = (section: SectionId) => {
-    setExpandedSection((prev) => (prev === section ? null : section));
-  };
-
-  const goToNextSection = () => {
-    const idx = SECTION_ORDER.indexOf(expandedSection ?? "basic");
-    if (idx < SECTION_ORDER.length - 1) {
-      setExpandedSection(SECTION_ORDER[idx + 1]);
-    }
-  };
 
   const sectionRefs = useRef<Record<SectionId, HTMLDivElement | null>>({
     basic: null,
@@ -140,461 +87,400 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
   });
 
   useEffect(() => {
-    if (expandedSection) {
-      sectionRefs.current[expandedSection]?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
+    sectionRefs.current[expandedSection]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
   }, [expandedSection]);
 
-  const getSectionStatus = (section: SectionId): "empty" | "partial" | "complete" => {
-    switch (section) {
-      case "basic":
-        if (formData.roasterId && formData.name) return "complete";
-        if (formData.roasterId || formData.name) return "partial";
-        return "empty";
-      case "roast":
-        return formData.roastLevel ? "complete" : "empty";
-      case "flavor":
-        return formData.quickNotes.length > 0 ? "complete" : "empty";
-      case "notes":
-        return formData.notes ? "complete" : "empty";
-      default:
-        return "empty";
+  const toggleQuickNote = (note: string) => {
+    setFormData((prev) => {
+      const exists = prev.quickNotes.includes(note);
+      return {
+        ...prev,
+        quickNotes: exists
+          ? prev.quickNotes.filter((entry) => entry !== note)
+          : [...prev.quickNotes, note],
+      };
+    });
+  };
+
+  const goToNextSection = () => {
+    const currentIndex = SECTION_ORDER.indexOf(expandedSection);
+    if (currentIndex < SECTION_ORDER.length - 1) {
+      setExpandedSection(SECTION_ORDER[currentIndex + 1]);
     }
+  };
+
+  const getSectionStatus = (section: SectionId): "empty" | "partial" | "complete" => {
+    if (section === "basic") {
+      if (formData.roasterId && formData.name) return "complete";
+      if (formData.roasterId || formData.name) return "partial";
+      return "empty";
+    }
+
+    if (section === "roast") {
+      return formData.roastLevel ? "complete" : "empty";
+    }
+
+    if (section === "flavor") {
+      return formData.quickNotes.length > 0 ? "complete" : "empty";
+    }
+
+    return formData.notes ? "complete" : "empty";
   };
 
   const getSelectedRoasterName = () => {
     if (!formData.roasterId) return null;
-    const options = getRoasterOptions(roasters);
-    const found = options.find((o) => o.value === formData.roasterId);
-    return found?.label || null;
+    const found = getRoasterOptions(roasters).find(
+      (item) => item.value === formData.roasterId,
+    );
+    return found?.label ?? null;
   };
 
-  const canSubmit = formData.roasterId && formData.name && !isSubmitting;
+  const handleAddRoaster = async () => {
+    if (!newRoasterName.trim()) return;
+    const roaster = await addRoaster(newRoasterName.trim());
+    if (!roaster) return;
+
+    setFormData((prev) => ({ ...prev, roasterId: roaster.id }));
+    setNewRoasterName("");
+    setShowNewRoaster(false);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!formData.roasterId || !formData.name || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      let roasterId = formData.roasterId;
+      if (roasterId.startsWith(PREFILL_PREFIX)) {
+        const roasterName = roasterId.slice(PREFILL_PREFIX.length);
+        const createdRoaster = await addRoaster(roasterName);
+        if (!createdRoaster) return;
+        roasterId = createdRoaster.id;
+      }
+
+      const payload: CreateCoffeeInput = {
+        roasterId,
+        name: formData.name,
+        origin: formData.origin || undefined,
+        roastLevel: formData.roastLevel,
+        flavorProfile: serializeQuickNotes(formData.quickNotes) || undefined,
+        notes: formData.notes || undefined,
+      };
+
+      await addCoffee(payload);
+      await fetchCoffees();
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const canSubmit = !!formData.roasterId && !!formData.name && !isSubmitting;
+  const options = getRoasterOptions(roasters);
 
   return (
-    <motion.div
-      className="modal-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+    <ModalShell
+      onClose={onClose}
+      panelClassName="min-h-[88dvh] max-h-[96dvh] md:min-h-0 md:max-h-[92dvh]"
     >
-      <motion.div
-        className="modal-content coffee-modal-v3"
-        initial={{ opacity: 0, y: "100%" }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        onClick={(e) => e.stopPropagation()}
+      <FormModalHeader
+        icon={<Coffee size={18} />}
+        title="قهوة جديدة"
+        step={SECTION_ORDER.indexOf(expandedSection) + 1}
+        totalSteps={SECTION_ORDER.length}
+        onClose={onClose}
+      />
+
+      <form
+        className="flex max-h-[calc(96dvh-4.5rem)] flex-col overflow-y-auto px-3 pb-4 md:max-h-[calc(92dvh-4.5rem)] md:px-4"
+        onSubmit={handleSubmit}
       >
-        {/* Drag handle for native feel */}
-        <div className="modal-handle" />
-
-        <div className="modal-header-v3">
-          <div className="modal-header-content">
-            <Coffee size={20} className="modal-header-icon" />
-            <div>
-              <h2>قهوة جديدة</h2>
-              <span className="form-progress">
-                {SECTION_ORDER.indexOf(expandedSection ?? "basic") + 1} / {SECTION_ORDER.length}
-              </span>
-            </div>
-          </div>
-          <motion.button
-            className="close-button-v3"
-            onClick={onClose}
-            whileTap={{ scale: 0.9 }}
-          >
-            <X size={20} />
-          </motion.button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="coffee-form-v3">
-          {/* Section 1: Basic Info (Required) */}
+        <div className="space-y-2">
           <div
-            ref={(el) => { sectionRefs.current.basic = el; }}
-            className={`form-accordion ${expandedSection === "basic" ? "expanded" : ""}`}
+            ref={(node) => {
+              sectionRefs.current.basic = node;
+            }}
           >
-            <button
-              type="button"
-              className="accordion-header"
-              onClick={() => toggleSection("basic")}
+            <AccordionSection
+              title="المعلومات الأساسية"
+              open={expandedSection === "basic"}
+              onToggle={() => setExpandedSection("basic")}
+              status={getSectionStatus("basic")}
+              preview={
+                getSelectedRoasterName() && formData.name
+                  ? `${getSelectedRoasterName()} - ${formData.name}`
+                  : getSelectedRoasterName() || formData.name || "مطلوب"
+              }
+              icon={<Coffee size={16} />}
             >
-              <div className="accordion-title">
-                <div className={`accordion-icon-wrapper ${getSectionStatus("basic")}`}>
-                  <Coffee size={18} />
-                </div>
-                <div className="accordion-title-text">
-                  <span className="accordion-label">المعلومات الأساسية</span>
-                  {expandedSection !== "basic" && (
-                    <span className="accordion-preview">
-                      {getSelectedRoasterName() && formData.name
-                        ? `${getSelectedRoasterName()} - ${formData.name}`
-                        : getSelectedRoasterName() || formData.name || "مطلوب"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="accordion-chevron">
-                {expandedSection === "basic" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {expandedSection === "basic" && (
-                <motion.div
-                  className="accordion-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="accordion-body">
-                    {/* Roaster Selection */}
-                    <div className="form-field-v3">
-                      <label className="field-label-v3">المحمصة *</label>
-                      
-                      {!showNewRoaster ? (
-                        <div className="roaster-select-row-v3">
-                          <div className="select-wrapper-v3">
-                            <select
-                              value={formData.roasterId}
-                              onChange={(e) =>
-                                setFormData({ ...formData, roasterId: e.target.value })
-                              }
-                              className="form-select-v3"
-                              required
-                            >
-                              <option value="">اختر محمصة...</option>
-                              {getRoasterOptions(roasters).map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown size={16} className="select-chevron" />
-                          </div>
-                          <motion.button
-                            type="button"
-                            className="add-new-btn"
-                            onClick={() => setShowNewRoaster(true)}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <Plus size={16} />
-                            <span>جديد</span>
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <div className="new-roaster-row">
-                          <input
-                            type="text"
-                            className="text-input-v3"
-                            value={newRoasterName}
-                            onChange={(e) => setNewRoasterName(e.target.value)}
-                            placeholder="اسم المحمصة الجديدة"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleAddRoaster();
-                              }
-                            }}
-                          />
-                          <div className="new-roaster-actions">
-                            <motion.button
-                              type="button"
-                              className="action-btn-v3 primary"
-                              onClick={handleAddRoaster}
-                              disabled={!newRoasterName.trim()}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              إضافة
-                            </motion.button>
-                            <motion.button
-                              type="button"
-                              className="action-btn-v3"
-                              onClick={() => {
-                                setShowNewRoaster(false);
-                                setNewRoasterName("");
-                              }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              إلغاء
-                            </motion.button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Coffee Name */}
-                    <div className="form-field-v3">
-                      <label className="field-label-v3" htmlFor="coffeeName">اسم القهوة *</label>
-                      <input
-                        type="text"
-                        id="coffeeName"
-                        className="text-input-v3"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="مثال: يرغاشيف، قوجي، سيدامو..."
-                        required
-                      />
-                    </div>
-
-                    {/* Origin */}
-                    <div className="form-field-v3">
-                      <label className="field-label-v3" htmlFor="origin">
-                        <MapPin size={14} />
-                        بلد المنشأ
-                      </label>
-                      <div className="select-wrapper-v3 full-width">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-secondary-foreground">
+                    المحمصة *
+                  </label>
+                  {!showNewRoaster ? (
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <div className="relative">
                         <select
-                          id="origin"
-                          className="form-select-v3"
-                          value={formData.origin}
-                          onChange={(e) =>
-                            setFormData({ ...formData, origin: e.target.value })
+                          value={formData.roasterId}
+                          onChange={(event) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              roasterId: event.target.value,
+                            }))
                           }
+                          className={selectClassName}
+                          required
                         >
-                          <option value="">اختر بلد المنشأ (اختياري)</option>
-                          {COFFEE_COUNTRIES.map(({ name, code }) => (
-                            <option key={code} value={name}>
-                              {getFlagEmoji(code)} {name}
+                          <option value="">اختر محمصة...</option>
+                          {options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
                             </option>
                           ))}
                         </select>
-                        <ChevronDown size={16} className="select-chevron" />
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-3"
+                        onClick={() => setShowNewRoaster(true)}
+                      >
+                        <Plus size={15} />
+                        جديد
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        value={newRoasterName}
+                        onChange={(event) => setNewRoasterName(event.target.value)}
+                        placeholder="اسم المحمصة الجديدة"
+                        autoFocus
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void handleAddRoaster();
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-10 flex-1"
+                          onClick={() => void handleAddRoaster()}
+                          disabled={!newRoasterName.trim()}
+                        >
+                          إضافة
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 flex-1"
+                          onClick={() => {
+                            setShowNewRoaster(false);
+                            setNewRoasterName("");
+                          }}
+                        >
+                          إلغاء
+                        </Button>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="section-next-btn"
-                      onClick={goToNextSection}
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Section 2: Roast Level */}
-          <div
-            ref={(el) => { sectionRefs.current.roast = el; }}
-            className={`form-accordion ${expandedSection === "roast" ? "expanded" : ""}`}
-          >
-            <button
-              type="button"
-              className="accordion-header"
-              onClick={() => toggleSection("roast")}
-            >
-              <div className="accordion-title">
-                <div className={`accordion-icon-wrapper ${getSectionStatus("roast")}`}>
-                  <Flame size={18} />
-                </div>
-                <div className="accordion-title-text">
-                  <span className="accordion-label">درجة التحميص</span>
-                  {expandedSection !== "roast" && (
-                    <span className="accordion-preview">
-                      {ROAST_LEVEL_LABELS[formData.roastLevel]}
-                    </span>
                   )}
                 </div>
-              </div>
-              <div className="accordion-chevron">
-                {expandedSection === "roast" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </button>
 
-            <AnimatePresence>
-              {expandedSection === "roast" && (
-                <motion.div
-                  className="accordion-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="accordion-body">
-                    <div className="roast-grid-v3">
-                      {roastLevels.map((level) => (
-                        <motion.button
-                          key={level}
-                          type="button"
-                          className={`roast-card-v3 ${formData.roastLevel === level ? "selected" : ""}`}
-                          onClick={() => setFormData({ ...formData, roastLevel: level })}
-                          whileTap={{ scale: 0.97 }}
-                        >
-                          <span className={`roast-circle ${level.toLowerCase().replace("_", "-")}`} />
-                          <span className="roast-name">{ROAST_LEVEL_LABELS[level]}</span>
-                        </motion.button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="section-next-btn"
-                      onClick={goToNextSection}
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Section 3: Flavor Profile */}
-          <div
-            ref={(el) => { sectionRefs.current.flavor = el; }}
-            className={`form-accordion ${expandedSection === "flavor" ? "expanded" : ""}`}
-          >
-            <button
-              type="button"
-              className="accordion-header"
-              onClick={() => toggleSection("flavor")}
-            >
-              <div className="accordion-title">
-                <div className={`accordion-icon-wrapper ${getSectionStatus("flavor")}`}>
-                  <Sparkles size={18} />
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="coffeeName"
+                    className="text-sm font-semibold text-secondary-foreground"
+                  >
+                    اسم القهوة *
+                  </label>
+                  <Input
+                    id="coffeeName"
+                    value={formData.name}
+                    onChange={(event) =>
+                      setFormData((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    placeholder="مثال: يرغاشيف، قوجي، سيدامو..."
+                    required
+                  />
                 </div>
-                <div className="accordion-title-text">
-                  <span className="accordion-label">النكهات</span>
-                  {expandedSection !== "flavor" && formData.quickNotes.length > 0 && (
-                    <span className="accordion-preview">
-                      {formData.quickNotes.length} نكهة محددة
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="accordion-chevron">
-                {expandedSection === "flavor" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </button>
 
-            <AnimatePresence>
-              {expandedSection === "flavor" && (
-                <motion.div
-                  className="accordion-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="accordion-body">
-                    <div className="flavor-grid-v3">
-                      {COFFEE_QUICK_NOTE_OPTIONS.map((note) => {
-                        const selected = formData.quickNotes.includes(note.value);
-
-                        return (
-                          <motion.button
-                            key={note.value}
-                            type="button"
-                            className={`flavor-chip-v3 ${selected ? "selected" : ""}`}
-                            onClick={() => toggleQuickNote(note.value)}
-                            whileTap={{ scale: 0.95 }}
-                            aria-pressed={selected}
-                          >
-                            <span className="flavor-emoji">{note.emoji}</span>
-                            <span className="flavor-label">{note.label}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      type="button"
-                      className="section-next-btn"
-                      onClick={goToNextSection}
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Section 4: Additional Notes */}
-          <div
-            ref={(el) => { sectionRefs.current.notes = el; }}
-            className={`form-accordion ${expandedSection === "notes" ? "expanded" : ""}`}
-          >
-            <button
-              type="button"
-              className="accordion-header"
-              onClick={() => toggleSection("notes")}
-            >
-              <div className="accordion-title">
-                <div className={`accordion-icon-wrapper ${getSectionStatus("notes")}`}>
-                  <MessageSquare size={18} />
-                </div>
-                <div className="accordion-title-text">
-                  <span className="accordion-label">ملاحظات إضافية</span>
-                  {expandedSection !== "notes" && formData.notes && (
-                    <span className="accordion-preview accordion-preview-truncate">
-                      {formData.notes.slice(0, 30)}{formData.notes.length > 30 ? "..." : ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="accordion-chevron">
-                {expandedSection === "notes" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {expandedSection === "notes" && (
-                <motion.div
-                  className="accordion-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="accordion-body">
-                    <textarea
-                      id="coffeeNotes"
-                      className="notes-textarea-v3"
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="origin"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-secondary-foreground"
+                  >
+                    <MapPin size={14} />
+                    بلد المنشأ
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="origin"
+                      className={selectClassName}
+                      value={formData.origin}
+                      onChange={(event) =>
+                        setFormData((prev) => ({ ...prev, origin: event.target.value }))
                       }
-                      placeholder="أضف أي ملاحظات إضافية عن هذه القهوة..."
-                      rows={3}
+                    >
+                      <option value="">اختر بلد المنشأ (اختياري)</option>
+                      {COFFEE_COUNTRIES.map(({ name, code }) => (
+                        <option key={code} value={name}>
+                          {getFlagEmoji(code)} {name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+                <SectionNextButton onClick={goToNextSection} />
+              </div>
+            </AccordionSection>
           </div>
 
-          {/* Sticky Submit Button */}
-          <div className="submit-container-v3">
-            <motion.button
-              type="submit"
-              className="submit-button-v3"
-              disabled={!canSubmit}
-              whileTap={canSubmit ? { scale: 0.98 } : {}}
+          <div
+            ref={(node) => {
+              sectionRefs.current.roast = node;
+            }}
+          >
+            <AccordionSection
+              title="درجة التحميص"
+              open={expandedSection === "roast"}
+              onToggle={() => setExpandedSection("roast")}
+              status={getSectionStatus("roast")}
+              preview={ROAST_LEVEL_LABELS[formData.roastLevel]}
+              icon={<Flame size={16} />}
             >
-              {isSubmitting ? (
-                <span className="submit-loading">جاري الإضافة...</span>
-              ) : (
-                <>
-                  <Plus size={20} />
-                  <span>إضافة القهوة</span>
-                </>
-              )}
-            </motion.button>
+              <div className="grid grid-cols-2 gap-2">
+                {roastLevels.map((level) => (
+                  <motion.button
+                    key={level}
+                    type="button"
+                    className={cn(
+                      "inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium",
+                      formData.roastLevel === level
+                        ? "border-accent bg-accent/15 text-accent"
+                        : "border-border bg-muted text-secondary-foreground",
+                    )}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, roastLevel: level }))
+                    }
+                  >
+                    <span
+                      className={cn(
+                        "size-2.5 rounded-full",
+                        level === "LIGHT" && "bg-amber-300",
+                        level === "MEDIUM" && "bg-amber-600",
+                        level === "MEDIUM_DARK" && "bg-amber-900",
+                        level === "DARK" && "bg-stone-900",
+                      )}
+                    />
+                    {ROAST_LEVEL_LABELS[level]}
+                  </motion.button>
+                ))}
+              </div>
+              <SectionNextButton onClick={goToNextSection} />
+            </AccordionSection>
           </div>
-        </form>
-      </motion.div>
-    </motion.div>
+
+          <div
+            ref={(node) => {
+              sectionRefs.current.flavor = node;
+            }}
+          >
+            <AccordionSection
+              title="النكهات"
+              open={expandedSection === "flavor"}
+              onToggle={() => setExpandedSection("flavor")}
+              status={getSectionStatus("flavor")}
+              preview={
+                formData.quickNotes.length > 0
+                  ? `${formData.quickNotes.length} نكهة محددة`
+                  : "اختياري"
+              }
+              icon={<Sparkles size={16} />}
+            >
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {COFFEE_QUICK_NOTE_OPTIONS.map((note) => {
+                  const selected = formData.quickNotes.includes(note.value);
+                  return (
+                    <motion.button
+                      key={note.value}
+                      type="button"
+                      className={cn(
+                        "inline-flex min-h-11 items-center justify-center gap-1 rounded-full border px-3 text-sm",
+                        selected
+                          ? "border-accent bg-accent text-accent-foreground"
+                          : "border-border bg-muted text-secondary-foreground",
+                      )}
+                      onClick={() => toggleQuickNote(note.value)}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span>{note.emoji}</span>
+                      <span>{note.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+              <SectionNextButton onClick={goToNextSection} />
+            </AccordionSection>
+          </div>
+
+          <div
+            ref={(node) => {
+              sectionRefs.current.notes = node;
+            }}
+          >
+            <AccordionSection
+              title="ملاحظات إضافية"
+              open={expandedSection === "notes"}
+              onToggle={() => setExpandedSection("notes")}
+              status={getSectionStatus("notes")}
+              preview={
+                formData.notes
+                  ? `${formData.notes.slice(0, 30)}${formData.notes.length > 30 ? "..." : ""}`
+                  : "اختياري"
+              }
+              icon={<MessageSquare size={16} />}
+            >
+              <textarea
+                className="min-h-28 w-full resize-none rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
+                value={formData.notes}
+                onChange={(event) =>
+                  setFormData((prev) => ({ ...prev, notes: event.target.value }))
+                }
+                placeholder="أضف أي ملاحظات إضافية عن هذه القهوة..."
+              />
+            </AccordionSection>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 mt-3 bg-gradient-to-t from-card via-card pt-3">
+          <Button
+            type="submit"
+            className="h-11 w-full text-sm font-bold"
+            disabled={!canSubmit}
+          >
+            {isSubmitting ? "جاري الإضافة..." : "إضافة القهوة"}
+          </Button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }

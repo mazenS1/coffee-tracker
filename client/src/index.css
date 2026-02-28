@@ -84,3 +84,141 @@
     isolation: isolate;
   }
 }
+
+/* Clerk RTL + dark-mode overrides kept globally */
+.cl-rootBox,
+.cl-card,
+.cl-main,
+.cl-form,
+.cl-formFieldRow,
+.cl-formButtonPrimary,
+.cl-footerAction,
+.cl-socialButtons,
+.cl-dividerRow,
+.cl-identityPreview,
+.cl-alert,
+.cl-otpCodeField,
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverActions,
+.cl-userProfile-root,
+.cl-navbar,
+.cl-page,
+.cl-profilePage {
+  direction: rtl !important;
+}
+
+.cl-formFieldLabel,
+.cl-formFieldLabelRow,
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-footerActionText,
+.cl-alertText,
+.cl-identityPreviewText,
+.cl-userButtonPopoverActionButtonText {
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverCard {
+  left: auto !important;
+  right: 0 !important;
+}
+
+.cl-userButtonPopoverActions {
+  direction: rtl !important;
+  width: 100% !important;
+}
+
+.cl-userButtonPopoverActionButton {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButtonText {
+  flex: 1 !important;
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverActionButtonIcon {
+  order: -1 !important;
+}
+
+.cl-userPreview {
+  direction: rtl !important;
+  flex-direction: row-reverse !important;
+}
+
+.cl-userPreviewMainIdentifier,
+.cl-userPreviewSecondaryIdentifier {
+  text-align: right !important;
+}
+
+.cl-userButtonPopoverFooter {
+  direction: rtl !important;
+  text-align: center !important;
+}
+
+.cl-formFieldInput,
+.cl-input {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.cl-socialButtonsBlockButton {
+  flex-direction: row-reverse !important;
+}
+
+.cl-formFieldInputShowPasswordButton {
+  left: auto !important;
+  right: 0.75rem !important;
+}
+
+[data-theme="dark"] .cl-card {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-formFieldInput,
+[data-theme="dark"] .cl-input {
+  background: var(--color-muted) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+[data-theme="dark"] .cl-formFieldLabel,
+[data-theme="dark"] .cl-headerTitle,
+[data-theme="dark"] .cl-headerSubtitle,
+[data-theme="dark"] .cl-userButtonPopoverActionButton {
+  color: var(--color-foreground) !important;
+}
+
+[data-theme="dark"] .cl-footerActionText,
+[data-theme="dark"] .cl-dividerText,
+[data-theme="dark"] .cl-navbarButton {
+  color: var(--color-muted-foreground) !important;
+}
+
+[data-theme="dark"] .cl-dividerLine {
+  background: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-socialButtonsBlockButton,
+[data-theme="dark"] .cl-userButtonPopoverCard,
+[data-theme="dark"] .cl-navbar {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .cl-userButtonPopoverActionButton:hover,
+[data-theme="dark"] .cl-navbarButton:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent) !important;
+}
+
+[data-theme="dark"] .cl-navbarButton[data-active="true"] {
+  color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent) !important;
+}
