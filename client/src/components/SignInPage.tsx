@@ -1,282 +1,498 @@
-import { SignIn } from "@clerk/clerk-react";
-import { motion } from "framer-motion";
-import { Coffee } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Apple, CheckCircle2, Loader2, Lock, Mail } from "lucide-react";
+import { useSignIn } from "@clerk/clerk-react";
+import { AuthLayout } from "./AuthLayout";
+import {
+  OAUTH_REDIRECT_COMPLETE,
+  OAUTH_REDIRECT_URL,
+  extractClerkErrorMessage,
+} from "./authFlow";
+import type { AuthStep } from "./authFlow";
 
-/**
- * Custom Sign In Page
- * 
- * A beautiful, RTL Arabic sign-in page that matches the coffee theme.
- * Uses Clerk's SignIn component with custom appearance overrides.
- * The page features:
- * - Coffee-themed background with warm gradients
- * - Arabic typography (Reem Kufi for display, Tajawal for body)
- * - RTL layout support
- * - Animated elements using framer-motion
- */
+type SignInMethod = "password" | "otp";
+type OAuthProviderStrategy = "oauth_google" | "oauth_apple";
+
+type EmailCodeFactor = {
+  strategy: "email_code";
+  emailAddressId: string;
+  safeIdentifier?: string;
+};
+
+type OtpContext =
+  | {
+      flow: "first_factor";
+      emailAddressId: string;
+      safeIdentifier?: string;
+    }
+  | {
+      flow: "second_factor";
+      emailAddressId?: string;
+      safeIdentifier?: string;
+    };
+
+const getEmailCodeFactor = (factors: unknown[] | null | undefined) => {
+  if (!Array.isArray(factors)) return null;
+
+  const factor = factors.find((entry) => {
+    if (!entry || typeof entry !== "object") return false;
+    const maybe = entry as { strategy?: unknown; emailAddressId?: unknown };
+    return (
+      maybe.strategy === "email_code" && typeof maybe.emailAddressId === "string"
+    );
+  });
+
+  if (!factor || typeof factor !== "object") return null;
+
+  const maybe = factor as {
+    strategy?: unknown;
+    emailAddressId?: unknown;
+    safeIdentifier?: unknown;
+  };
+
+  if (
+    maybe.strategy !== "email_code" ||
+    typeof maybe.emailAddressId !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    strategy: "email_code",
+    emailAddressId: maybe.emailAddressId,
+    safeIdentifier:
+      typeof maybe.safeIdentifier === "string" ? maybe.safeIdentifier : undefined,
+  } satisfies EmailCodeFactor;
+};
+
 export function SignInPage() {
-  return (
-    <div className="auth-page" dir="rtl">
-      {/* Background decorations */}
-      <div className="auth-background">
-        <div className="auth-pattern" />
-        <div className="auth-glow auth-glow-1" />
-        <div className="auth-glow auth-glow-2" />
-      </div>
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const navigate = useNavigate();
 
-      <motion.div
-        className="auth-container"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+  const [step, setStep] = useState<AuthStep>("form");
+  const [method, setMethod] = useState<SignInMethod>("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [otpContext, setOtpContext] = useState<OtpContext | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderStrategy | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (step !== "done") return;
+    const timer = window.setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [navigate, step]);
+
+  if (!isLoaded || !signIn || !setActive) {
+    return (
+      <AuthLayout
+        title="تسجيل الدخول"
+        subtitle="سجّل دخولك لمتابعة رحلتك مع القهوة المختصة"
       >
-        {/* Branding header */}
-        <motion.div
-          className="auth-branding"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-        >
-          <div className="auth-logo">
-            <Coffee size={40} />
-          </div>
-          <h1 className="auth-title">دفتر القهوة</h1>
-          <p className="auth-subtitle">سجّل دخولك لبدء رحلتك مع القهوة المختصة</p>
-        </motion.div>
-
-        {/* Clerk SignIn Component with custom appearance */}
-        <motion.div
-          className="auth-card"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-        >
-          <SignIn
-            appearance={{
-              layout: {
-                socialButtonsPlacement: "bottom",
-                socialButtonsVariant: "blockButton",
-                privacyPageUrl: undefined,
-                termsPageUrl: undefined,
-              },
-              variables: {
-                // Colors matching coffee theme
-                colorPrimary: "#4a2c17",
-                colorBackground: "var(--bg-card)",
-                colorText: "var(--text-primary)",
-                colorTextSecondary: "var(--text-secondary)",
-                colorInputBackground: "var(--bg-secondary)",
-                colorInputText: "var(--text-primary)",
-                colorDanger: "#dc3545",
-                
-                // Typography
-                fontFamily: "'Tajawal', sans-serif",
-                fontFamilyButtons: "'Tajawal', sans-serif",
-                fontSize: "1rem",
-                
-                // Border radius matching theme
-                borderRadius: "12px",
-                
-                // Spacing
-                spacingUnit: "1rem",
-              },
-              elements: {
-                // Root card styling
-                rootBox: {
-                  width: "100%",
-                  maxWidth: "100%",
-                },
-                card: {
-                  background: "transparent",
-                  boxShadow: "none",
-                  padding: "0",
-                  margin: "0",
-                },
-                
-                // Header
-                headerTitle: {
-                  fontFamily: "'Reem Kufi', sans-serif",
-                  fontSize: "1.5rem",
-                  fontWeight: "600",
-                  color: "var(--text-primary)",
-                  textAlign: "center",
-                },
-                headerSubtitle: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-secondary)",
-                  textAlign: "center",
-                },
-                
-                // Form fields
-                formFieldLabel: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "600",
-                  color: "var(--text-secondary)",
-                  fontSize: "0.875rem",
-                  textAlign: "right",
-                },
-                formFieldInput: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "0.875rem 1rem",
-                  fontSize: "1rem",
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-primary)",
-                  direction: "rtl",
-                  textAlign: "right",
-                  transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-                  "&:focus": {
-                    borderColor: "var(--accent)",
-                    boxShadow: "0 0 0 3px rgba(198, 139, 60, 0.15)",
-                  },
-                },
-                formFieldInputShowPasswordButton: {
-                  color: "var(--text-muted)",
-                },
-                
-                // Buttons
-                formButtonPrimary: {
-                  background: "linear-gradient(135deg, #4a2c17, #2d1810)",
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "600",
-                  fontSize: "1rem",
-                  padding: "0.875rem 1.5rem",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 20px rgba(45, 24, 16, 0.3)",
-                  transition: "all 0.25s ease",
-                  "&:hover": {
-                    boxShadow: "0 6px 28px rgba(45, 24, 16, 0.4)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:active": {
-                    transform: "translateY(0)",
-                  },
-                },
-                
-                // Social buttons
-                socialButtonsBlockButton: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "0.75rem 1rem",
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-primary)",
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    background: "var(--bg-card)",
-                    borderColor: "var(--accent)",
-                  },
-                },
-                socialButtonsBlockButtonText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  fontWeight: "500",
-                },
-                
-                // Divider
-                dividerLine: {
-                  background: "var(--border)",
-                },
-                dividerText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-muted)",
-                  fontSize: "0.875rem",
-                },
-                
-                // Footer links
-                footerActionLink: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "#c68b3c",
-                  fontWeight: "600",
-                  "&:hover": {
-                    color: "#b8860b",
-                  },
-                },
-                footerActionText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-muted)",
-                },
-                
-                // Identity preview (when returning user)
-                identityPreviewText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "var(--text-primary)",
-                },
-                identityPreviewEditButton: {
-                  color: "#c68b3c",
-                },
-                
-                // Alert messages
-                alert: {
-                  background: "rgba(220, 53, 69, 0.1)",
-                  border: "1px solid rgba(220, 53, 69, 0.3)",
-                  borderRadius: "12px",
-                  color: "#dc3545",
-                  fontFamily: "'Tajawal', sans-serif",
-                },
-                alertText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                },
-                
-                // OTP input
-                otpCodeFieldInput: {
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  fontFamily: "'Reem Kufi', sans-serif",
-                  fontSize: "1.25rem",
-                  "&:focus": {
-                    borderColor: "var(--accent)",
-                    boxShadow: "0 0 0 3px rgba(198, 139, 60, 0.15)",
-                  },
-                },
-                
-                // Form error
-                formFieldErrorText: {
-                  fontFamily: "'Tajawal', sans-serif",
-                  color: "#dc3545",
-                  fontSize: "0.8rem",
-                },
-                
-                // Loading states
-                spinner: {
-                  color: "#c68b3c",
-                },
-              },
-            }}
-            routing="hash"
-            signUpUrl="#/sign-up"
-          />
-        </motion.div>
-
-        {/* Decorative coffee beans */}
-        <div className="auth-decoration">
-          <motion.div
-            className="coffee-bean bean-1"
-            animate={{
-              y: [0, -10, 0],
-              rotate: [0, 5, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="coffee-bean bean-2"
-            animate={{
-              y: [0, 10, 0],
-              rotate: [0, -5, 0],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1,
-            }}
-          />
+        <div className="auth-loading-card">
+          <Loader2 size={24} className="spinner" />
+          <p>جاري تحميل تجربة تسجيل الدخول...</p>
         </div>
-      </motion.div>
-    </div>
+      </AuthLayout>
+    );
+  }
+
+  const clearFlowErrors = () => {
+    setErrorMessage(null);
+  };
+
+  const completeSignIn = async (sessionId: string | null) => {
+    if (!sessionId) {
+      throw new Error("تعذر إكمال الجلسة. حاول مرة أخرى.");
+    }
+
+    await setActive({ session: sessionId });
+    setStep("done");
+  };
+
+  const startOtpSignIn = async (identifier: string) => {
+    const created = await signIn.create({ identifier });
+    const emailFactor = getEmailCodeFactor(created.supportedFirstFactors);
+
+    if (!emailFactor) {
+      throw new Error("تسجيل الدخول برمز البريد غير متاح لهذا الحساب.");
+    }
+
+    await signIn.prepareFirstFactor({
+      strategy: "email_code",
+      emailAddressId: emailFactor.emailAddressId,
+    });
+
+    setOtpContext({
+      flow: "first_factor",
+      emailAddressId: emailFactor.emailAddressId,
+      safeIdentifier: emailFactor.safeIdentifier,
+    });
+    setStep("otp");
+  };
+
+  const startPasswordSignIn = async (identifier: string) => {
+    const result = await signIn.create({
+      strategy: "password",
+      identifier,
+      password,
+    });
+
+    if (result.status === "complete") {
+      await completeSignIn(result.createdSessionId);
+      return;
+    }
+
+    if (result.status === "needs_second_factor") {
+      const secondFactor = getEmailCodeFactor(result.supportedSecondFactors);
+      await signIn.prepareSecondFactor(
+        secondFactor
+          ? {
+              strategy: "email_code",
+              emailAddressId: secondFactor.emailAddressId,
+            }
+          : {
+              strategy: "email_code",
+            },
+      );
+
+      setOtpContext({
+        flow: "second_factor",
+        emailAddressId: secondFactor?.emailAddressId,
+        safeIdentifier: secondFactor?.safeIdentifier,
+      });
+      setStep("otp");
+      return;
+    }
+
+    throw new Error("لم نتمكن من إكمال تسجيل الدخول. تحقق من بياناتك.");
+  };
+
+  const handleSubmitForm = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isLoaded) return;
+
+    const identifier = email.trim().toLowerCase();
+    if (!identifier) {
+      setErrorMessage("أدخل البريد الإلكتروني أولاً.");
+      return;
+    }
+
+    clearFlowErrors();
+    setIsSubmitting(true);
+
+    try {
+      if (method === "password") {
+        if (!password) {
+          setErrorMessage("أدخل كلمة المرور.");
+          return;
+        }
+
+        await startPasswordSignIn(identifier);
+      } else {
+        await startOtpSignIn(identifier);
+      }
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isLoaded || !otpContext) return;
+
+    const normalizedCode = code.trim();
+    if (!normalizedCode) {
+      setErrorMessage("أدخل رمز التحقق المرسل إلى بريدك.");
+      return;
+    }
+
+    clearFlowErrors();
+    setIsSubmitting(true);
+
+    try {
+      const attempt =
+        otpContext.flow === "first_factor"
+          ? await signIn.attemptFirstFactor({
+              strategy: "email_code",
+              code: normalizedCode,
+            })
+          : await signIn.attemptSecondFactor({
+              strategy: "email_code",
+              code: normalizedCode,
+            });
+
+      if (attempt.status === "complete") {
+        await completeSignIn(attempt.createdSessionId);
+        return;
+      }
+
+      throw new Error("رمز التحقق غير صحيح أو منتهي الصلاحية.");
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isLoaded || !otpContext) return;
+
+    clearFlowErrors();
+    setIsResending(true);
+
+    try {
+      if (otpContext.flow === "first_factor") {
+        await signIn.prepareFirstFactor({
+          strategy: "email_code",
+          emailAddressId: otpContext.emailAddressId,
+        });
+      } else {
+        await signIn.prepareSecondFactor(
+          otpContext.emailAddressId
+            ? {
+                strategy: "email_code",
+                emailAddressId: otpContext.emailAddressId,
+              }
+            : {
+                strategy: "email_code",
+              },
+        );
+      }
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleOAuth = async (provider: OAuthProviderStrategy) => {
+    if (!isLoaded) return;
+
+    clearFlowErrors();
+    setOauthLoading(provider);
+
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: provider,
+        redirectUrl: OAUTH_REDIRECT_URL,
+        redirectUrlComplete: OAUTH_REDIRECT_COMPLETE,
+      });
+    } catch (error) {
+      setErrorMessage(extractClerkErrorMessage(error));
+      setOauthLoading(null);
+    }
+  };
+
+  const stepNumber = step === "form" ? 1 : step === "otp" ? 2 : 3;
+
+  return (
+    <AuthLayout
+      title="تسجيل الدخول"
+      subtitle="سجّل دخولك لمتابعة رحلتك مع القهوة المختصة"
+    >
+      {step === "done" ? (
+        <div className="authx-done">
+          <CheckCircle2 size={44} />
+          <h3>تم تسجيل الدخول بنجاح</h3>
+          <p>سيتم تحويلك الآن إلى الصفحة الرئيسية...</p>
+        </div>
+      ) : (
+        <>
+          <p className="authx-step-indicator">الخطوة {stepNumber} من 3</p>
+
+          {step === "form" && (
+            <div className="authx-method-tabs" role="tablist" aria-label="طريقة الدخول">
+              <button
+                type="button"
+                className={`authx-method-tab ${method === "password" ? "is-active" : ""}`}
+                onClick={() => {
+                  setMethod("password");
+                  clearFlowErrors();
+                }}
+              >
+                كلمة المرور
+              </button>
+              <button
+                type="button"
+                className={`authx-method-tab ${method === "otp" ? "is-active" : ""}`}
+                onClick={() => {
+                  setMethod("otp");
+                  clearFlowErrors();
+                }}
+              >
+                رمز البريد
+              </button>
+            </div>
+          )}
+
+          {errorMessage && <div className="authx-error">{errorMessage}</div>}
+
+          {step === "form" ? (
+            <form className="authx-form" onSubmit={handleSubmitForm}>
+              <label className="authx-field">
+                <span>البريد الإلكتروني</span>
+                <div className="authx-input-wrap">
+                  <Mail size={17} />
+                  <input
+                    className="authx-input"
+                    type="email"
+                    dir="ltr"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </label>
+
+              {method === "password" && (
+                <label className="authx-field">
+                  <span>كلمة المرور</span>
+                  <div className="authx-input-wrap">
+                    <Lock size={17} />
+                    <input
+                      className="authx-input"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                </label>
+              )}
+
+              <button
+                className="authx-primary-btn"
+                type="submit"
+                disabled={isSubmitting || oauthLoading !== null}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={18} className="spinner" />
+                    جاري التحقق...
+                  </>
+                ) : method === "password" ? (
+                  "متابعة"
+                ) : (
+                  "إرسال رمز التحقق"
+                )}
+              </button>
+            </form>
+          ) : (
+            <form className="authx-form" onSubmit={handleVerifyOtp}>
+              <p className="authx-otp-hint">
+                أدخل الرمز المرسل إلى {otpContext?.safeIdentifier ?? email}
+              </p>
+              <label className="authx-field">
+                <span>رمز التحقق</span>
+                <input
+                  className="authx-input authx-otp-input"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  placeholder="123456"
+                  maxLength={6}
+                  required
+                />
+              </label>
+
+              <button
+                className="authx-primary-btn"
+                type="submit"
+                disabled={isSubmitting || isResending || oauthLoading !== null}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={18} className="spinner" />
+                    جاري التأكيد...
+                  </>
+                ) : (
+                  "تأكيد الرمز"
+                )}
+              </button>
+
+              <div className="authx-secondary-actions">
+                <button
+                  className="authx-link-btn"
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending || isSubmitting}
+                >
+                  {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
+                </button>
+                <button
+                  className="authx-link-btn"
+                  type="button"
+                  onClick={() => {
+                    setStep("form");
+                    setCode("");
+                    setOtpContext(null);
+                    clearFlowErrors();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  رجوع
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="authx-divider" aria-hidden="true">
+            <span />
+            <p>أو تابع باستخدام</p>
+            <span />
+          </div>
+
+          <div className="authx-oauth-grid">
+            <button
+              type="button"
+              className="authx-oauth-btn"
+              onClick={() => handleOAuth("oauth_google")}
+              disabled={isSubmitting || isResending || oauthLoading !== null}
+            >
+              {oauthLoading === "oauth_google" ? (
+                <Loader2 size={16} className="spinner" />
+              ) : (
+                <span className="authx-oauth-badge">G</span>
+              )}
+              Google
+            </button>
+            <button
+              type="button"
+              className="authx-oauth-btn"
+              onClick={() => handleOAuth("oauth_apple")}
+              disabled={isSubmitting || isResending || oauthLoading !== null}
+            >
+              {oauthLoading === "oauth_apple" ? (
+                <Loader2 size={16} className="spinner" />
+              ) : (
+                <Apple size={16} />
+              )}
+              Apple
+            </button>
+          </div>
+
+          <p className="authx-switch-link">
+            لا تملك حساباً بعد؟ <Link to="/sign-up">أنشئ حسابك</Link>
+          </p>
+        </>
+      )}
+    </AuthLayout>
   );
 }

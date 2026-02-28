@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Coffee as CoffeeIcon, Search, Loader2 } from "lucide-react";
 import {
+  Plus,
+  Coffee as CoffeeIcon,
+  Search,
+  Loader2,
+  ArrowRight,
+} from "lucide-react";
+import {
+  AuthenticateWithRedirectCallback,
   SignedIn,
   SignedOut,
   UserButton,
   useAuth,
 } from "@clerk/clerk-react";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { CoffeeCard } from "./components/CoffeeCard";
 import { CoffeeDetail } from "./components/CoffeeDetail";
@@ -17,32 +25,9 @@ import { SignInPage } from "./components/SignInPage";
 import { SignUpPage } from "./components/SignUpPage";
 import "./App.css";
 
-/**
- * Simple hash-based routing hook
- * Used to show sign-in/sign-up pages at #/sign-in and #/sign-up
- */
-function useHashRoute() {
-  const [hash, setHash] = useState(window.location.hash);
-
-  useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  return [hash, setHash] as const;
-}
-
-const isSignInHash = (hash: string) =>
-  hash.startsWith("#/sign-in") || hash.startsWith("#/signin");
-
-const isSignUpHash = (hash: string) =>
-  hash.startsWith("#/sign-up") || hash.startsWith("#/signup");
-
-function AppContent() {
+function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hash, setHash] = useHashRoute();
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -57,14 +42,12 @@ function AppContent() {
     setSelectedCoffee,
   } = useCoffeeStore();
 
-  // Fetch coffees and roasters on mount
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     fetchCoffees();
     fetchRoasters();
   }, [fetchCoffees, fetchRoasters, isLoaded, isSignedIn]);
 
-  // Search with debounce
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     if (!hasMountedSearch.current) {
@@ -77,31 +60,7 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
 
-  // If Clerk leaves auth hash in the URL after successful sign-in/up, clear it.
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    if (!isSignInHash(hash) && !isSignUpHash(hash)) return;
-
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}`
-    );
-    setHash(window.location.hash);
-  }, [hash, isLoaded, isSignedIn, setHash]);
-
   const totalCups = coffees.reduce((acc, c) => acc + (c._count?.cups || 0), 0);
-
-  // Handle hash-based routing for auth pages
-  // Show sign-in page at #/sign-in
-  if (isLoaded && !isSignedIn && isSignInHash(hash)) {
-    return <SignInPage />;
-  }
-  
-  // Show sign-up page at #/sign-up
-  if (isLoaded && !isSignedIn && isSignUpHash(hash)) {
-    return <SignUpPage />;
-  }
 
   return (
     <div className="app" dir="rtl">
@@ -155,7 +114,6 @@ function AppContent() {
               <div className="header-trailing">
                 <ThemeToggle />
 
-                {/* Clerk Auth UI - Custom themed */}
                 <motion.div
                   className="auth-buttons"
                   initial={{ opacity: 0, y: -20 }}
@@ -163,9 +121,9 @@ function AppContent() {
                   transition={{ delay: 0.2 }}
                 >
                   <SignedOut>
-                    <a href="#/sign-in" className="auth-button sign-in">
+                    <Link to="/sign-in" className="auth-button sign-in">
                       دخول
-                    </a>
+                    </Link>
                   </SignedOut>
                   <SignedIn>
                     <UserButton
@@ -175,10 +133,10 @@ function AppContent() {
                           avatarBox: {
                             width: 36,
                             height: 36,
-                            border: '2px solid var(--accent, #c68b3c)',
+                            border: "2px solid var(--accent, #c68b3c)",
                           },
                           userButtonPopoverCard: {
-                            direction: 'rtl',
+                            direction: "rtl",
                           },
                         },
                       }}
@@ -187,10 +145,10 @@ function AppContent() {
                         appearance: {
                           elements: {
                             rootBox: {
-                              direction: 'rtl',
+                              direction: "rtl",
                             },
                             card: {
-                              direction: 'rtl',
+                              direction: "rtl",
                             },
                           },
                         },
@@ -310,22 +268,16 @@ function AppContent() {
                 <h2>مرحباً بك في دفتر القهوة</h2>
                 <p>سجّل دخولك لبدء تتبع رحلتك مع القهوة المختصة</p>
                 <div className="signed-out-actions">
-                  <motion.a
-                    href="#/sign-in"
-                    className="empty-add-button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    تسجيل الدخول
-                  </motion.a>
-                  <motion.a
-                    href="#/sign-up"
-                    className="secondary-auth-button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    إنشاء حساب
-                  </motion.a>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Link to="/sign-in" className="empty-add-button">
+                      تسجيل الدخول
+                    </Link>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Link to="/sign-up" className="secondary-auth-button">
+                      إنشاء حساب
+                    </Link>
+                  </motion.div>
                 </div>
               </motion.section>
             </SignedOut>
@@ -342,10 +294,83 @@ function AppContent() {
   );
 }
 
+function SignedOutOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <div className="auth-page" dir="rtl">
+        <div className="auth-background" />
+        <div className="auth-container">
+          <div className="auth-card auth-loading-card">
+            <Loader2 className="spinner" size={30} />
+            <p>جاري تحميل المصادقة...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSignedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function SsoCallbackPage() {
+  return (
+    <div className="auth-page" dir="rtl">
+      <div className="auth-background" />
+      <div className="auth-container">
+        <div className="auth-card auth-loading-card">
+          <div className="auth-callback-icon">
+            <ArrowRight size={22} />
+          </div>
+          <h2 className="auth-callback-title">جاري إتمام تسجيل الدخول</h2>
+          <p className="auth-callback-subtitle">لا تغلق هذه الصفحة</p>
+          <AuthenticateWithRedirectCallback
+            signInFallbackRedirectUrl="/"
+            signUpFallbackRedirectUrl="/"
+            signInUrl="/sign-in"
+            signUpUrl="/sign-up"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route
+        path="/sign-in"
+        element={
+          <SignedOutOnlyRoute>
+            <SignInPage />
+          </SignedOutOnlyRoute>
+        }
+      />
+      <Route
+        path="/sign-up"
+        element={
+          <SignedOutOnlyRoute>
+            <SignUpPage />
+          </SignedOutOnlyRoute>
+        }
+      />
+      <Route path="/sso-callback" element={<SsoCallbackPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AppRoutes />
     </AuthProvider>
   );
 }
