@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
 import { Prisma } from '../../generated/prisma';
+import { pickAllowedFields } from '../../utils/pickAllowedFields';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -40,6 +41,22 @@ const parsePositiveInt = (
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(1, parsed));
 };
+
+const CUP_UPDATE_FIELDS: readonly (keyof UpdateCupBody)[] = [
+  'rating',
+  'notes',
+  'grams',
+  'temperature',
+  'time',
+  'body',
+  'acidity',
+  'sweetness',
+  'bitterness',
+  'balance',
+  'aftertaste',
+  'aroma',
+  'brewMethod',
+] as const;
 
 // =============================================================================
 // CUP CONTROLLER
@@ -264,7 +281,32 @@ export const updateCup = async (
   try {
     const { id } = req.params;
     const userId = req.dbUser!.id;
-    const updateData = req.body;
+
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Request body must be a JSON object',
+      });
+    }
+
+    const { picked: updateData, unknownKeys } = pickAllowedFields<UpdateCupBody>(
+      req.body,
+      CUP_UPDATE_FIELDS
+    );
+
+    if (unknownKeys.length > 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: `Unknown fields in payload: ${unknownKeys.join(', ')}`,
+      });
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'At least one valid field is required for update',
+      });
+    }
 
     // Check if cup exists and user owns the coffee
     const existingCup = await prisma.cup.findUnique({
