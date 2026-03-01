@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Coffee as CoffeeIcon,
+  BookOpen,
   Loader2,
   Plus,
   Search,
@@ -126,17 +127,20 @@ function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <div className="flex min-h-[2.75rem] flex-col items-center justify-center rounded-lg border border-border bg-card px-2 py-1 text-center md:min-h-[3rem] md:px-3">
-                  <span className="block font-display text-base font-bold text-accent md:text-xl">
-                    {coffees.length}
-                  </span>
-                  <span className="block text-[10px] uppercase text-muted-foreground">قهوة</span>
+                <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
+                  <div className="flex items-center gap-1">
+                    <BookOpen size={11} className="text-accent" />
+                    <span className="font-display text-base font-bold text-accent md:text-xl">
+                      {coffees.length}
+                    </span>
+                  </div>
+                  <span className="block text-[10px] text-muted-foreground">قهوة</span>
                 </div>
-                <div className="flex min-h-[2.75rem] flex-col items-center justify-center rounded-lg border border-border bg-card px-2 py-1 text-center md:min-h-[3rem] md:px-3">
-                  <span className="block font-display text-base font-bold text-accent md:text-xl">
+                <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
+                  <span className="font-display text-base font-bold text-accent md:text-xl">
                     {totalCups}
                   </span>
-                  <span className="block text-[10px] uppercase text-muted-foreground">فنجان</span>
+                  <span className="block text-[10px] text-muted-foreground">فنجان</span>
                 </div>
               </motion.div>
 
@@ -200,12 +204,12 @@ function HomePage() {
             </header>
 
             <motion.div
-              className="mb-8 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 shadow-sm md:mb-10 md:px-4"
+              className="mb-8 flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-ring/50 md:mb-10 md:px-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Search size={19} className="text-muted-foreground" />
+              <Search size={18} className="shrink-0 text-muted-foreground" />
               <Input
                 className="h-auto border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0"
                 type="text"

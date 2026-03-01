@@ -1,9 +1,16 @@
 import { motion } from "framer-motion";
-import { MapPin, Coffee as CoffeeIcon, Flame } from "lucide-react";
+import { Coffee as CoffeeIcon, Flame } from "lucide-react";
 import type { Coffee, RoastLevel } from "@coffee-tracker/shared";
 import { getRoastLevelLabel } from "@coffee-tracker/shared";
+import { COFFEE_COUNTRIES, getFlagEmoji } from "../data/countries";
 import { StarRating } from "./StarRating";
 import { cn } from "../lib/cn";
+
+function getOriginFlag(origin: string | null | undefined): string | null {
+  if (!origin) return null;
+  const country = COFFEE_COUNTRIES.find((c) => c.name === origin);
+  return country ? getFlagEmoji(country.code) : null;
+}
 
 interface CoffeeCardProps {
   coffee: Coffee;
@@ -26,67 +33,95 @@ export function CoffeeCard({ coffee, onClick, index }: CoffeeCardProps) {
     <motion.article
       className={cn(
         "group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card",
-        "shadow-md transition-colors will-change-transform md:hover:shadow-xl",
+        "shadow-sm transition-shadow will-change-transform hover:shadow-md",
       )}
       onClick={onClick}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
-      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      whileHover={{ y: -6, transition: { duration: 0.2 } }}
       layout
     >
+      {/* Roast color bar — gradient for depth */}
       <div
-        className="h-1 w-full"
-        style={{ background: roastColor }}
+        className="h-1.5 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${roastColor}, ${roastColor}99)`,
+        }}
       />
 
-      <div className="p-3 md:p-4">
-        <div className="mb-2 flex items-start justify-between gap-2 md:mb-3">
-          <h3 className="font-display text-lg font-semibold text-foreground md:text-xl">
+      {/* Subtle colour wash from roast bar downward */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-1.5 h-20 opacity-[0.07]"
+        style={{ background: `linear-gradient(180deg, ${roastColor}, transparent)` }}
+      />
+
+      <div className="relative p-3 md:p-4">
+        {/* Name + roast badge */}
+        <div className="mb-2.5 flex items-start justify-between gap-2 md:mb-3">
+          <h3 className="font-display text-lg font-bold leading-tight text-foreground md:text-xl">
             {coffee.name || "قهوة بدون اسم"}
           </h3>
           <div
-            className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-white md:text-xs"
-            style={{ background: roastColor }}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white md:text-xs"
+            style={{
+              background: `linear-gradient(135deg, ${roastColor}, ${roastColor}cc)`,
+              boxShadow: `0 2px 8px ${roastColor}50`,
+            }}
           >
-            <Flame size={12} />
+            <Flame size={11} />
             {getRoastLevelLabel(coffee.roastLevel)}
           </div>
         </div>
 
-        <div className="mb-3 flex flex-col gap-1.5 text-sm text-secondary-foreground md:mb-4">
+        {/* Roaster + origin with icon pill containers */}
+        <div className="mb-3 flex flex-col gap-1.5 text-sm text-muted-foreground md:mb-4">
           <span className="inline-flex items-center gap-2">
-            <CoffeeIcon size={14} />
-            {coffee.roaster?.name || "محمصة غير محددة"}
+            <span
+              className="flex size-[22px] shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: roastColor }}
+            >
+              <CoffeeIcon size={11} />
+            </span>
+            <span className="font-medium text-secondary-foreground">
+              {coffee.roaster?.name || "محمصة غير محددة"}
+            </span>
           </span>
           {coffee.origin && (
             <span className="inline-flex items-center gap-2">
-              <MapPin size={14} />
-              {coffee.origin}
+              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted text-sm leading-[0]">
+                {getOriginFlag(coffee.origin) ?? "🌍"}
+              </span>
+              <span>{coffee.origin}</span>
             </span>
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-2 md:pt-3">
-          <div className="inline-flex items-baseline gap-1">
-            <span className="font-display text-2xl font-bold text-accent md:text-3xl">
+        {/* Footer: cup count + star rating */}
+        <div className="flex items-center justify-between border-t border-border pt-2.5 md:pt-3">
+          <div className="inline-flex items-center gap-1.5">
+            <span
+              className="flex size-[26px] shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: roastColor }}
+            >
+              <CoffeeIcon size={13} />
+            </span>
+            <span className="font-display text-2xl font-bold leading-none text-accent md:text-3xl">
               {cupsCount}
             </span>
-            <span className="text-sm text-muted-foreground">فنجان</span>
+            <span className="text-xs text-muted-foreground">فنجان</span>
           </div>
 
           {coffee.rating && coffee.rating > 0 && (
-            <div>
-              <StarRating rating={coffee.rating} size="sm" readonly />
-            </div>
+            <StarRating rating={coffee.rating} size="sm" readonly />
           )}
         </div>
       </div>
 
-      <motion.div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-accent/10 opacity-0 md:group-hover:opacity-100"
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 1 }}
+      {/* Hover: roast-tinted inner glow */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 0 1px ${roastColor}35` }}
       />
     </motion.article>
   );
