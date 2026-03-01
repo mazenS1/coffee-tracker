@@ -615,7 +615,7 @@ export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
           </div>
         </div>
 
-        <div className="sticky bottom-0 mt-3 bg-gradient-to-t from-card via-card pt-3">
+        <div className="mt-3 pt-3">
           <Button type="submit" className="h-11 w-full text-sm font-bold" disabled={isSubmitting}>
             {isSubmitting
               ? isEditMode

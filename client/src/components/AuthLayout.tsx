@@ -11,7 +11,7 @@ type AuthLayoutProps = {
 
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background px-4 pb-8 pt-8 md:px-6" dir="rtl">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background px-4 pb-4 pt-6 md:px-6" dir="rtl">
       <div className="pointer-events-none absolute inset-0">
         <div
           className="absolute inset-0 opacity-[0.035]"
@@ -29,34 +29,34 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
       </div>
 
       <motion.div
-        className="relative z-10 mx-auto mt-4 flex w-full max-w-xl flex-col items-center gap-6"
+        className="relative z-10 mx-auto mt-2 flex w-full max-w-xl flex-col items-center gap-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
       >
         <motion.div
-          className="w-full text-center"
+          className="w-full shrink-0 text-center"
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <div className="mx-auto mb-3 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-            <Coffee size={40} />
+          <div className="mx-auto mb-3 inline-flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+            <Coffee size={32} />
           </div>
-          <h1 className="font-display text-3xl font-semibold text-foreground">
+          <h1 className="font-display text-2xl font-semibold text-foreground">
             دفتر القهوة
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground md:text-base">{subtitle}</p>
+          <p className="mt-1 text-xs text-muted-foreground md:text-sm">{subtitle}</p>
         </motion.div>
 
         <motion.div
-          className="w-full rounded-xl border border-border/90 bg-card/95 p-5 shadow-xl shadow-black/10 backdrop-blur md:p-6"
+          className="w-full shrink-0 rounded-xl border border-border/90 bg-card/95 p-4 shadow-xl shadow-black/10 backdrop-blur md:p-5"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.35 }}
         >
-          <div className="mb-4 text-center">
-            <h2 className="font-display text-2xl font-semibold text-foreground">{title}</h2>
+          <div className="mb-2 text-center">
+            <h2 className="font-display text-xl font-semibold text-foreground">{title}</h2>
           </div>
           {children}
         </motion.div>

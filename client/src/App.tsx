@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Coffee as CoffeeIcon,
+  BookOpen,
   Loader2,
   Plus,
   Search,
@@ -85,8 +86,11 @@ function HomePage() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-background" dir="rtl">
-      <div className="pointer-events-none fixed inset-0 z-0">
+    <div
+      className="relative flex min-h-dvh flex-col overflow-hidden bg-background px-4 pb-4 pt-6 md:px-6"
+      dir="rtl"
+    >
+      <div className="pointer-events-none absolute inset-0 z-0">
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -94,7 +98,8 @@ function HomePage() {
               "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a2c17' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
           }}
         />
-        <div className="absolute -right-1/4 -top-1/3 h-[38rem] w-[38rem] rounded-full bg-accent/15 blur-3xl" />
+        <div className="absolute -left-1/4 top-1/4 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
+        <div className="absolute -right-1/4 bottom-1/3 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
       </div>
 
       <AnimatePresence mode="wait">
@@ -110,29 +115,32 @@ function HomePage() {
         ) : (
           <motion.main
             key="home"
-            className="relative z-10 mx-auto max-w-6xl px-4 pb-28 pt-4 md:px-6 md:pb-32 md:pt-6"
+            className="relative z-10 mx-auto w-full max-w-6xl pb-28 md:pb-32"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <header className="mb-6 flex min-h-12 items-center justify-between gap-2 md:mb-8">
               <motion.div
-                className="flex min-w-24 items-center gap-1.5"
+                className="flex min-w-24 items-stretch gap-1.5"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <div className="rounded-lg border border-border bg-card px-2 py-1 text-center md:px-3">
-                  <span className="block font-display text-base font-bold text-accent md:text-xl">
-                    {coffees.length}
-                  </span>
-                  <span className="block text-[10px] uppercase text-muted-foreground">قهوة</span>
+                <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
+                  <div className="flex items-center gap-1">
+                    <BookOpen size={11} className="text-accent" />
+                    <span className="font-display text-base font-bold text-accent md:text-xl">
+                      {coffees.length}
+                    </span>
+                  </div>
+                  <span className="block text-[10px] text-muted-foreground">قهوة</span>
                 </div>
-                <div className="rounded-lg border border-border bg-card px-2 py-1 text-center md:px-3">
-                  <span className="block font-display text-base font-bold text-accent md:text-xl">
+                <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
+                  <span className="font-display text-base font-bold text-accent md:text-xl">
                     {totalCups}
                   </span>
-                  <span className="block text-[10px] uppercase text-muted-foreground">فنجان</span>
+                  <span className="block text-[10px] text-muted-foreground">فنجان</span>
                 </div>
               </motion.div>
 
@@ -148,6 +156,7 @@ function HomePage() {
               <div className="flex min-w-24 items-center justify-end gap-2 md:min-w-32">
                 <ThemeToggle />
                 <motion.div
+                  className="flex items-center"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
@@ -195,12 +204,12 @@ function HomePage() {
             </header>
 
             <motion.div
-              className="mb-8 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 shadow-sm md:mb-10 md:px-4"
+              className="mb-8 flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-ring/50 md:mb-10 md:px-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Search size={19} className="text-muted-foreground" />
+              <Search size={18} className="shrink-0 text-muted-foreground" />
               <Input
                 className="h-auto border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0"
                 type="text"
@@ -283,7 +292,7 @@ function HomePage() {
               {coffees.length > 0 ? (
                 <motion.button
                   type="button"
-                  className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-4 z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/40 md:bottom-6 md:left-6 md:size-16"
+                  className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-4 z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground md:bottom-6 md:left-6 md:size-16"
                   onClick={() => setShowAddCoffee(true)}
                   initial={{ opacity: 0, scale: 0, rotate: -180 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}

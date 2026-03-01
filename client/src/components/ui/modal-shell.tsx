@@ -11,7 +11,7 @@ interface ModalShellProps {
 export function ModalShell({ children, onClose, panelClassName }: ModalShellProps) {
   return (
     <motion.div
-      className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/55 p-0 backdrop-blur-sm md:items-center md:p-4"
+      className="fixed inset-0 z-[1000] flex items-end justify-center bg-transparent p-0 md:items-center md:bg-black/55 md:p-4 md:backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -19,7 +19,7 @@ export function ModalShell({ children, onClose, panelClassName }: ModalShellProp
     >
       <motion.div
         className={cn(
-          "w-full rounded-t-2xl border border-border bg-card shadow-2xl md:max-w-2xl md:rounded-2xl",
+          "w-full max-h-full rounded-t-2xl border border-border bg-card shadow-2xl md:max-w-2xl md:rounded-2xl",
           panelClassName,
         )}
         initial={{ opacity: 0, y: "100%" }}

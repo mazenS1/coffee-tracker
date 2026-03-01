@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Apple, CheckCircle2, Lock, Mail } from "lucide-react";
+import { CheckCircle2, Lock, Mail } from "lucide-react";
 import { useSignIn } from "@clerk/clerk-react";
 import { AuthLayout } from "./AuthLayout";
 import {
@@ -13,6 +13,7 @@ import {
   AuthSecondaryLinkButton,
   AuthStepIndicator,
   AuthTextInput,
+  GoogleLogo,
 } from "./AuthPrimitives";
 import {
   OAUTH_REDIRECT_COMPLETE,
@@ -22,7 +23,7 @@ import {
 import type { AuthStep } from "./authFlow";
 
 type SignInMethod = "password" | "otp";
-type OAuthProviderStrategy = "oauth_google" | "oauth_apple";
+type OAuthProviderStrategy = "oauth_google";
 
 type EmailCodeFactor = {
   strategy: "email_code";
@@ -447,28 +448,14 @@ export function SignInPage() {
 
           <AuthDivider label="أو تابع باستخدام" />
 
-          <div className="grid grid-cols-2 gap-2">
-            <AuthOAuthButton
-              onClick={() => handleOAuth("oauth_google")}
-              disabled={isSubmitting || isResending || oauthLoading !== null}
-              loading={oauthLoading === "oauth_google"}
-              icon={
-                <span className="inline-flex size-4 items-center justify-center rounded-full bg-white text-[11px] font-black text-red-600">
-                  G
-                </span>
-              }
-            >
-              Google
-            </AuthOAuthButton>
-            <AuthOAuthButton
-              onClick={() => handleOAuth("oauth_apple")}
-              disabled={isSubmitting || isResending || oauthLoading !== null}
-              loading={oauthLoading === "oauth_apple"}
-              icon={<Apple size={16} />}
-            >
-              Apple
-            </AuthOAuthButton>
-          </div>
+          <AuthOAuthButton
+            onClick={() => handleOAuth("oauth_google")}
+            disabled={isSubmitting || isResending || oauthLoading !== null}
+            loading={oauthLoading === "oauth_google"}
+            icon={<GoogleLogo className="size-6 shrink-0" />}
+          >
+            Google
+          </AuthOAuthButton>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             لا تملك حساباً بعد؟{" "}

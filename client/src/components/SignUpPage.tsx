@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Apple, CheckCircle2, Lock, Mail, User } from "lucide-react";
+import { CheckCircle2, Lock, Mail, User } from "lucide-react";
 import { useSignUp } from "@clerk/clerk-react";
 import { AuthLayout } from "./AuthLayout";
 import {
@@ -13,6 +13,7 @@ import {
   AuthSecondaryLinkButton,
   AuthStepIndicator,
   AuthTextInput,
+  GoogleLogo,
 } from "./AuthPrimitives";
 import {
   OAUTH_REDIRECT_COMPLETE,
@@ -21,7 +22,7 @@ import {
 } from "./authFlow";
 import type { AuthStep } from "./authFlow";
 
-type OAuthProviderStrategy = "oauth_google" | "oauth_apple";
+type OAuthProviderStrategy = "oauth_google";
 
 export function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -181,7 +182,7 @@ export function SignUpPage() {
       subtitle="أنشئ حسابك وابدأ بتتبع تجارب القهوة بكل تفاصيلها"
     >
       {step === "done" ? (
-        <div className="flex flex-col items-center gap-2 py-5 text-center">
+        <div className="flex flex-col items-center gap-2 py-4 text-center">
           <CheckCircle2 size={44} className="text-accent" />
           <h3 className="font-display text-xl text-foreground">تم إنشاء الحساب بنجاح</h3>
           <p className="text-sm text-muted-foreground">أهلاً بك. سيتم تحويلك الآن إلى التطبيق.</p>
@@ -193,8 +194,8 @@ export function SignUpPage() {
           {errorMessage && <AuthErrorBanner message={errorMessage} />}
 
           {step === "form" ? (
-            <form className="flex flex-col gap-3" onSubmit={handleCreateAccount}>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <form className="flex flex-col gap-2" onSubmit={handleCreateAccount}>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <AuthField label="الاسم الأول">
                   <AuthTextInput
                     icon={<User size={17} />}
@@ -248,9 +249,9 @@ export function SignUpPage() {
 
               <div
                 id="clerk-captcha"
-                className="mt-1"
+                className="mt-0.5"
                 data-cl-theme="auto"
-                data-cl-size="flexible"
+                data-cl-size="compact"
                 data-cl-language="auto"
               />
 
@@ -263,7 +264,7 @@ export function SignUpPage() {
               </AuthPrimaryButton>
             </form>
           ) : (
-            <form className="flex flex-col gap-3" onSubmit={handleVerifyOtp}>
+            <form className="flex flex-col gap-2" onSubmit={handleVerifyOtp}>
               <p className="text-center text-sm text-muted-foreground">
                 أدخل رمز التحقق المرسل إلى {email.trim()}
               </p>
@@ -290,7 +291,7 @@ export function SignUpPage() {
                 تأكيد الرمز
               </AuthPrimaryButton>
 
-              <div className="mt-1 flex justify-between gap-3">
+              <div className="mt-0.5 flex justify-between gap-2">
                 <AuthSecondaryLinkButton
                   onClick={handleResendCode}
                   disabled={isResending || isSubmitting}
@@ -313,30 +314,16 @@ export function SignUpPage() {
 
           <AuthDivider label="أو استخدم" />
 
-          <div className="grid grid-cols-2 gap-2">
-            <AuthOAuthButton
-              onClick={() => handleOAuth("oauth_google")}
-              disabled={isSubmitting || isResending || oauthLoading !== null}
-              loading={oauthLoading === "oauth_google"}
-              icon={
-                <span className="inline-flex size-4 items-center justify-center rounded-full bg-white text-[11px] font-black text-red-600">
-                  G
-                </span>
-              }
-            >
-              Google
-            </AuthOAuthButton>
-            <AuthOAuthButton
-              onClick={() => handleOAuth("oauth_apple")}
-              disabled={isSubmitting || isResending || oauthLoading !== null}
-              loading={oauthLoading === "oauth_apple"}
-              icon={<Apple size={16} />}
-            >
-              Apple
-            </AuthOAuthButton>
-          </div>
+          <AuthOAuthButton
+            onClick={() => handleOAuth("oauth_google")}
+            disabled={isSubmitting || isResending || oauthLoading !== null}
+            loading={oauthLoading === "oauth_google"}
+            icon={<GoogleLogo className="size-6 shrink-0" />}
+          >
+            Google
+          </AuthOAuthButton>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-2 text-center text-sm text-muted-foreground">
             لديك حساب بالفعل؟{" "}
             <Link className="font-bold text-accent hover:underline" to="/sign-in">
               تسجيل الدخول
