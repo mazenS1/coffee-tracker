@@ -22,6 +22,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { useShallow } from "zustand/react/shallow";
 
 const CoffeeDetail = lazy(async () => {
   const module = await import("./components/CoffeeDetail");
@@ -58,7 +59,18 @@ function HomePage() {
     fetchCoffees,
     fetchRoasters,
     setSelectedCoffee,
-  } = useCoffeeStore();
+  } = useCoffeeStore(
+    useShallow((state) => ({
+      coffees: state.coffees,
+      selectedCoffeeId: state.selectedCoffeeId,
+      selectedCoffee: state.selectedCoffee,
+      isLoading: state.isLoading,
+      error: state.error,
+      fetchCoffees: state.fetchCoffees,
+      fetchRoasters: state.fetchRoasters,
+      setSelectedCoffee: state.setSelectedCoffee,
+    })),
+  );
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -231,7 +243,7 @@ function HomePage() {
 
             <SignedIn>
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence>
                   {isLoading ? (
                     <motion.div
                       className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
@@ -282,7 +294,7 @@ function HomePage() {
                         key={coffee.id}
                         coffee={coffee}
                         index={index}
-                        onClick={() => setSelectedCoffee(coffee.id)}
+                        onSelect={setSelectedCoffee}
                       />
                     ))
                   )}

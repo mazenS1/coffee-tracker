@@ -27,6 +27,7 @@ import { AccordionSection } from "./ui/accordion-section";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ModalShell } from "./ui/modal-shell";
+import { useShallow } from "zustand/react/shallow";
 
 const PREFILL_PREFIX = "prefill:";
 
@@ -65,7 +66,14 @@ function getRoasterOptions(roasters: { id: string; name: string }[]) {
 }
 
 export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
-  const { addCoffee, addRoaster, roasters, fetchCoffees } = useCoffeeStore();
+  const { addCoffee, addRoaster, roasters, fetchCoffees } = useCoffeeStore(
+    useShallow((state) => ({
+      addCoffee: state.addCoffee,
+      addRoaster: state.addRoaster,
+      roasters: state.roasters,
+      fetchCoffees: state.fetchCoffees,
+    })),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNewRoaster, setShowNewRoaster] = useState(false);
   const [newRoasterName, setNewRoasterName] = useState("");

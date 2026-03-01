@@ -18,6 +18,7 @@ import { COFFEE_COUNTRIES, getFlagEmoji } from "../data/countries";
 import { useCoffeeStore } from "../store/coffeeStore";
 import { StarRating } from "./StarRating";
 import { Button } from "./ui/button";
+import { useShallow } from "zustand/react/shallow";
 
 const ROAST_COLORS: Record<RoastLevel, string> = {
   LIGHT: "#c4a574",
@@ -95,7 +96,14 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   const [showAddCup, setShowAddCup] = useState(false);
   const [editingCup, setEditingCup] = useState<Cup | null>(null);
   const { updateCoffee, deleteCup, deleteCoffee, isLoadingCoffee } =
-    useCoffeeStore();
+    useCoffeeStore(
+      useShallow((state) => ({
+        updateCoffee: state.updateCoffee,
+        deleteCup: state.deleteCup,
+        deleteCoffee: state.deleteCoffee,
+        isLoadingCoffee: state.isLoadingCoffee,
+      })),
+    );
 
   const isDetailLoading =
     isLoadingCoffee && (!coffee || coffee.id !== coffeeId || !coffee.cups);
@@ -135,6 +143,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   }
 
   const cups = coffee?.cups ?? [];
+  const newestFirstCups = cups.slice().reverse();
   const coffeeQuickNotes = parseNotes(coffee?.flavorProfile);
   const averageRating =
     cups.length > 0
@@ -298,7 +307,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
             </header>
 
             <div className="space-y-2">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence>
                 {cups.length === 0 ? (
                   <motion.div
                     className="rounded-xl border border-border bg-card p-6 text-center"
@@ -312,10 +321,7 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                     </span>
                   </motion.div>
                 ) : (
-                  cups
-                    .slice()
-                    .reverse()
-                    .map((cup, index) => {
+                  newestFirstCups.map((cup, index) => {
                       const tasteBadges = getCupTasteBadges(cup);
                       const quickNotes = parseNotes(cup.aroma);
                       const cupNumber = cups.length - index;
@@ -328,7 +334,6 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -100 }}
                           transition={{ delay: index * 0.05 }}
-                          layout
                         >
                           {/* Cup header row */}
                           <div className="flex items-center justify-between gap-2 border-b border-border px-2.5 py-2">

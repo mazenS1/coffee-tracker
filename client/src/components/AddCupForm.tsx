@@ -35,6 +35,7 @@ import {
 import { AccordionSection } from "./ui/accordion-section";
 import { Button } from "./ui/button";
 import { ModalShell } from "./ui/modal-shell";
+import { useShallow } from "zustand/react/shallow";
 
 interface AddCupFormProps {
   coffeeId: string;
@@ -201,7 +202,12 @@ function StepperInput({
 
 export function AddCupForm({ coffeeId, onClose, cup }: AddCupFormProps) {
   const isEditMode = Boolean(cup);
-  const { addCup, updateCup } = useCoffeeStore();
+  const { addCup, updateCup } = useCoffeeStore(
+    useShallow((state) => ({
+      addCup: state.addCup,
+      updateCup: state.updateCup,
+    })),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedSection, setExpandedSection] = useState<SectionId>("brew");
   const [formData, setFormData] = useState<CupFormState>(() =>
