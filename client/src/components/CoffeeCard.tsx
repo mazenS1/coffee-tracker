@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { Coffee as CoffeeIcon, Flame } from "lucide-react";
 import type { Coffee, RoastLevel } from "@coffee-tracker/shared";
@@ -14,7 +15,7 @@ function getOriginFlag(origin: string | null | undefined): string | null {
 
 interface CoffeeCardProps {
   coffee: Coffee;
-  onClick: () => void;
+  onSelect: (coffeeId: string) => void;
   index: number;
 }
 
@@ -25,9 +26,15 @@ const ROAST_COLORS: Record<RoastLevel, string> = {
   DARK: "#3d2914",
 };
 
-export function CoffeeCard({ coffee, onClick, index }: CoffeeCardProps) {
+export const CoffeeCard = memo(function CoffeeCard({
+  coffee,
+  onSelect,
+  index,
+}: CoffeeCardProps) {
   const cupsCount = coffee._count?.cups || coffee.cups?.length || 0;
   const roastColor = ROAST_COLORS[coffee.roastLevel];
+  const shouldAnimateIn = index < 12;
+  const entryDelay = Math.min(index, 6) * 0.03;
 
   return (
     <motion.article
@@ -35,12 +42,11 @@ export function CoffeeCard({ coffee, onClick, index }: CoffeeCardProps) {
         "group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card",
         "shadow-sm transition-shadow will-change-transform hover:shadow-md",
       )}
-      onClick={onClick}
-      initial={{ opacity: 0, y: 30 }}
+      onClick={() => onSelect(coffee.id)}
+      initial={shouldAnimateIn ? { opacity: 0, y: 16 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
-      whileHover={{ y: -6, transition: { duration: 0.2 } }}
-      layout
+      transition={{ duration: 0.2, ease: "easeOut", delay: shouldAnimateIn ? entryDelay : 0 }}
+      whileHover={{ y: -4, transition: { duration: 0.16, ease: "easeOut" } }}
     >
       {/* Roast color bar — gradient for depth */}
       <div
@@ -125,4 +131,6 @@ export function CoffeeCard({ coffee, onClick, index }: CoffeeCardProps) {
       />
     </motion.article>
   );
-}
+});
+
+CoffeeCard.displayName = "CoffeeCard";
