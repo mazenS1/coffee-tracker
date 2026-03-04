@@ -9,9 +9,16 @@ import type {
   UpdateCupInput,
 } from '@coffee-tracker/shared';
 import { ApiError, bootstrapApi, coffeeApi, cupApi, roasterApi } from '../api/client';
+import { setHotCoffeeId } from '../lib/hotCoffee';
 
 const ROASTER_CACHE_TTL_MS = 300_000;
 const DEFAULT_FIRST_PAGE_LIMIT = 20;
+let coffeesRequestSeq = 0;
+const prefetchCoffeeRequests = new Map<string, Promise<void>>();
+
+const getCoffeeCupCount = (
+  coffee: Pick<Coffee, '_count' | 'cups'> | null | undefined
+): number => coffee?._count?.cups ?? coffee?.cups?.length ?? 0;
 
 // =============================================================================
 // STORE STATE
@@ -102,6 +109,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // ---------------------------------------------------------------------------
 
   fetchBootstrap: async (params) => {
+    coffeesRequestSeq += 1;
     set({ isLoading: true, error: null });
     const limit = params?.limit ?? DEFAULT_FIRST_PAGE_LIMIT;
 
@@ -109,7 +117,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       const response = await bootstrapApi.get({
         limit,
         cursor: params?.cursor,
-        includeRoasters: params?.includeRoasters ?? false,
+        includeRoasters: params?.includeRoasters ?? true,
       });
 
       set((state) => ({
@@ -183,6 +191,13 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       return;
     }
 
+    const inFlight = prefetchCoffeeRequests.get(id);
+    if (inFlight) {
+      await inFlight;
+      return;
+    }
+
+    const request = (async () => {
     try {
       const response = await coffeeApi.getById(id);
       set((currentState) => ({
@@ -194,9 +209,16 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     } catch {
       // Ignore prefetch failures to avoid surfacing non-critical background errors.
     }
+    })().finally(() => {
+      prefetchCoffeeRequests.delete(id);
+    });
+
+    prefetchCoffeeRequests.set(id, request);
+    await request;
   },
 
   fetchCoffees: async (params) => {
+    const requestSeq = ++coffeesRequestSeq;
     set({ isLoading: true, error: null });
     try {
       const response = await coffeeApi.getAll({
@@ -204,12 +226,20 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
         limit: DEFAULT_FIRST_PAGE_LIMIT,
         search: params?.search,
       });
+      if (requestSeq !== coffeesRequestSeq) {
+        return;
+      }
+
       set({
         coffees: response.data,
         pagination: response.pagination,
         isLoading: false,
       });
     } catch (error) {
+      if (requestSeq !== coffeesRequestSeq) {
+        return;
+      }
+
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch coffees',
         isLoading: false,
@@ -218,7 +248,10 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   },
 
   fetchCoffeeById: async (id) => {
-    set({ isLoadingCoffee: true, error: null });
+    const currentState = get();
+    const hasImmediateContent =
+      currentState.selectedCoffeeId === id && currentState.selectedCoffee !== null;
+    set({ isLoadingCoffee: !hasImmediateContent, error: null });
     try {
       const response = await coffeeApi.getById(id);
       set((state) => {
@@ -260,8 +293,22 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await coffeeApi.create(coffee);
+      const sessionUserId = get().sessionUserId;
+
+      if (sessionUserId) {
+        setHotCoffeeId(sessionUserId, response.data.id);
+      }
+
       set((state) => ({
         coffees: [response.data, ...state.coffees],
+        pagination: {
+          ...state.pagination,
+          total: state.pagination.total + 1,
+          totalPages: Math.max(
+            1,
+            Math.ceil((state.pagination.total + 1) / state.pagination.limit)
+          ),
+        },
         isLoading: false,
       }));
       return response.data;
@@ -336,11 +383,46 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     set({ error: null });
     try {
       const response = await cupApi.create(cup);
-      // Refresh the selected coffee to get updated cups
-      const { selectedCoffeeId } = get();
-      if (selectedCoffeeId === cup.coffeeId) {
-        await get().fetchCoffeeById(selectedCoffeeId);
-      }
+      const createdCup: Cup = response.data;
+
+      set((state) => {
+        const nextCoffees = state.coffees.map((coffee) =>
+          coffee.id === cup.coffeeId
+            ? {
+                ...coffee,
+                _count: { cups: getCoffeeCupCount(coffee) + 1 },
+              }
+            : coffee
+        );
+
+        const selectedCoffee =
+          state.selectedCoffeeId === cup.coffeeId && state.selectedCoffee
+            ? {
+                ...state.selectedCoffee,
+                cups: [...(state.selectedCoffee.cups ?? []), createdCup],
+                _count: { cups: getCoffeeCupCount(state.selectedCoffee) + 1 },
+              }
+            : state.selectedCoffee;
+
+        const prefetchedCoffee = state.prefetchedCoffeeById[cup.coffeeId];
+        const prefetchedCoffeeById = prefetchedCoffee
+          ? {
+              ...state.prefetchedCoffeeById,
+              [cup.coffeeId]: {
+                ...prefetchedCoffee,
+                cups: [...(prefetchedCoffee.cups ?? []), createdCup],
+                _count: { cups: getCoffeeCupCount(prefetchedCoffee) + 1 },
+              },
+            }
+          : state.prefetchedCoffeeById;
+
+        return {
+          coffees: nextCoffees,
+          selectedCoffee,
+          prefetchedCoffeeById,
+        };
+      });
+
       return response.data;
     } catch (error) {
       set({
@@ -353,12 +435,44 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   updateCup: async (id, updates) => {
     set({ error: null });
     try {
-      await cupApi.update(id, updates);
-      // Refresh the selected coffee to get updated cups
-      const { selectedCoffeeId } = get();
-      if (selectedCoffeeId) {
-        await get().fetchCoffeeById(selectedCoffeeId);
-      }
+      const response = await cupApi.update(id, updates);
+      const updatedCup: Cup = response.data;
+
+      set((state) => {
+        if (!state.selectedCoffeeId || !state.selectedCoffee) {
+          return {};
+        }
+
+        const cups = state.selectedCoffee.cups ?? [];
+        const hasCup = cups.some((cup) => cup.id === id);
+        if (!hasCup) {
+          return {};
+        }
+
+        const nextCups = cups.map((cup) => (cup.id === id ? updatedCup : cup));
+        const nextSelectedCoffee = {
+          ...state.selectedCoffee,
+          cups: nextCups,
+        };
+
+        const cachedCoffee = state.prefetchedCoffeeById[state.selectedCoffeeId];
+        const prefetchedCoffeeById = cachedCoffee
+          ? {
+              ...state.prefetchedCoffeeById,
+              [state.selectedCoffeeId]: {
+                ...cachedCoffee,
+                cups: (cachedCoffee.cups ?? []).map((cup) =>
+                  cup.id === id ? updatedCup : cup
+                ),
+              },
+            }
+          : state.prefetchedCoffeeById;
+
+        return {
+          selectedCoffee: nextSelectedCoffee,
+          prefetchedCoffeeById,
+        };
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to update cup',
@@ -370,11 +484,58 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     set({ error: null });
     try {
       await cupApi.delete(id);
-      // Refresh the selected coffee to get updated cups
-      const { selectedCoffeeId } = get();
-      if (selectedCoffeeId) {
-        await get().fetchCoffeeById(selectedCoffeeId);
-      }
+
+      set((state) => {
+        if (!state.selectedCoffeeId || !state.selectedCoffee) {
+          return {};
+        }
+
+        const currentCups = state.selectedCoffee.cups ?? [];
+        const hasCup = currentCups.some((cup) => cup.id === id);
+        if (!hasCup) {
+          return {};
+        }
+
+        const nextCups = currentCups.filter((cup) => cup.id !== id);
+        const selectedCoffeeId = state.selectedCoffeeId;
+
+        const coffees = state.coffees.map((coffee) =>
+          coffee.id === selectedCoffeeId
+            ? {
+                ...coffee,
+                _count: { cups: Math.max(0, getCoffeeCupCount(coffee) - 1) },
+              }
+            : coffee
+        );
+
+        const selectedCoffee = {
+          ...state.selectedCoffee,
+          cups: nextCups,
+          _count: {
+            cups: Math.max(0, getCoffeeCupCount(state.selectedCoffee) - 1),
+          },
+        };
+
+        const cachedCoffee = state.prefetchedCoffeeById[selectedCoffeeId];
+        const prefetchedCoffeeById = cachedCoffee
+          ? {
+              ...state.prefetchedCoffeeById,
+              [selectedCoffeeId]: {
+                ...cachedCoffee,
+                cups: (cachedCoffee.cups ?? []).filter((cup) => cup.id !== id),
+                _count: {
+                  cups: Math.max(0, getCoffeeCupCount(cachedCoffee) - 1),
+                },
+              },
+            }
+          : state.prefetchedCoffeeById;
+
+        return {
+          coffees,
+          selectedCoffee,
+          prefetchedCoffeeById,
+        };
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to delete cup',
@@ -468,7 +629,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       set({
         selectedCoffeeId: id,
         selectedCoffee: prefetchedCoffee ?? previewCoffee,
-        isLoadingCoffee: prefetchedCoffee ? false : true,
+        isLoadingCoffee: prefetchedCoffee || previewCoffee ? false : true,
         error: null,
       });
 

@@ -145,13 +145,6 @@ export const getAllCoffees = async (
         orderBy: { createdAt: 'desc' }, // Sort by newest first
         include: {
           roaster: true,  // Include related roaster
-          user: {
-            select: {     // Select only specific user fields (security!)
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
           _count: {       // Include count of related cups
             select: { cups: true },
           },
@@ -206,13 +199,6 @@ export const getCoffeeById = async (
       where: { id },
       include: {
         roaster: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
         cups: {
           orderBy: { createdAt: 'desc' },
           take: 10, // Limit nested results
@@ -335,13 +321,6 @@ export const createCoffee = async (
       },
       include: {
         roaster: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -471,13 +450,6 @@ export const updateCoffee = async (
       data,
       include: {
         roaster: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 

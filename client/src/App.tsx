@@ -18,16 +18,13 @@ import {
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
+import { CoffeeDetail } from "./components/CoffeeDetail";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { getHotCoffeeId, setHotCoffeeId } from "./lib/hotCoffee";
 import { useShallow } from "zustand/react/shallow";
-
-const CoffeeDetail = lazy(async () => {
-  const module = await import("./components/CoffeeDetail");
-  return { default: module.CoffeeDetail };
-});
 
 const AddCoffeeForm = lazy(async () => {
   const module = await import("./components/AddCoffeeForm");
@@ -59,7 +56,6 @@ function HomePage() {
     fetchBootstrap,
     prefetchCoffeeById,
     fetchCoffees,
-    fetchRoasters,
     setSessionUser,
     setSelectedCoffee,
   } = useCoffeeStore(
@@ -72,7 +68,6 @@ function HomePage() {
       fetchBootstrap: state.fetchBootstrap,
       prefetchCoffeeById: state.prefetchCoffeeById,
       fetchCoffees: state.fetchCoffees,
-      fetchRoasters: state.fetchRoasters,
       setSessionUser: state.setSessionUser,
       setSelectedCoffee: state.setSelectedCoffee,
     })),
@@ -90,35 +85,31 @@ function HomePage() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;
     let isCancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let idleId: number | undefined;
-    const requestIdle = (globalThis as typeof globalThis & {
-      requestIdleCallback?: (
-        callback: IdleRequestCallback,
-        options?: IdleRequestOptions
-      ) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    }).requestIdleCallback;
-
-    const preloadRoasters = () => {
-      if (isCancelled) return;
-      void fetchRoasters();
-    };
 
     const bootstrapAndPrefetch = async () => {
-      await fetchBootstrap();
-      if (isCancelled) return;
-
-      const newestCoffeeId = useCoffeeStore.getState().coffees[0]?.id;
-      if (newestCoffeeId) {
-        void prefetchCoffeeById(newestCoffeeId);
+      const hotCoffeeIdFromStorage = getHotCoffeeId(userId);
+      if (hotCoffeeIdFromStorage) {
+        void prefetchCoffeeById(hotCoffeeIdFromStorage);
       }
 
-      // Lower priority than newest-coffee prefetch.
-      if (requestIdle) {
-        idleId = requestIdle(() => preloadRoasters(), { timeout: 1_500 });
-      } else {
-        timeoutId = setTimeout(preloadRoasters, 0);
+      await fetchBootstrap({ includeRoasters: true });
+      if (isCancelled) return;
+
+      const state = useCoffeeStore.getState();
+      const hotCoffeeId = state.sessionUserId
+        ? getHotCoffeeId(state.sessionUserId)
+        : null;
+      const hasHotCoffee = hotCoffeeId
+        ? state.coffees.some((coffee) => coffee.id === hotCoffeeId)
+        : false;
+      const prefetchCoffeeId = hasHotCoffee ? hotCoffeeId : state.coffees[0]?.id;
+
+      if (state.sessionUserId && prefetchCoffeeId) {
+        setHotCoffeeId(state.sessionUserId, prefetchCoffeeId);
+      }
+
+      if (prefetchCoffeeId) {
+        void prefetchCoffeeById(prefetchCoffeeId);
       }
     };
 
@@ -126,18 +117,8 @@ function HomePage() {
 
     return () => {
       isCancelled = true;
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
-
-      const cancelIdle = (globalThis as typeof globalThis & {
-        cancelIdleCallback?: (handle: number) => void;
-      }).cancelIdleCallback;
-      if (idleId !== undefined && cancelIdle) {
-        cancelIdle(idleId);
-      }
     };
-  }, [fetchBootstrap, prefetchCoffeeById, fetchRoasters, isLoaded, isSignedIn, userId]);
+  }, [fetchBootstrap, prefetchCoffeeById, isLoaded, isSignedIn, userId]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;
@@ -147,11 +128,17 @@ function HomePage() {
     }
 
     const timeout = setTimeout(() => {
-      fetchCoffees({ search: searchQuery || undefined });
+      const trimmedSearch = searchQuery.trim();
+      if (!trimmedSearch) {
+        void fetchBootstrap({ includeRoasters: false });
+        return;
+      }
+
+      void fetchCoffees({ search: trimmedSearch });
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn, userId]);
+  }, [searchQuery, fetchBootstrap, fetchCoffees, isLoaded, isSignedIn, userId]);
 
   const totalCups = useMemo(
     () => coffees.reduce((acc, coffee) => acc + (coffee._count?.cups || 0), 0),
@@ -177,14 +164,12 @@ function HomePage() {
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
-          <Suspense fallback={<PageLoadingFallback label="جاري تحميل تفاصيل القهوة..." />}>
-            <CoffeeDetail
-              key={`detail-${selectedCoffeeId}`}
-              coffeeId={selectedCoffeeId}
-              coffee={selectedCoffee}
-              onBack={() => setSelectedCoffee(null)}
-            />
-          </Suspense>
+          <CoffeeDetail
+            key={`detail-${selectedCoffeeId}`}
+            coffeeId={selectedCoffeeId}
+            coffee={selectedCoffee}
+            onBack={() => setSelectedCoffee(null)}
+          />
         ) : (
           <motion.main
             key="home"
@@ -305,7 +290,7 @@ function HomePage() {
             <SignedIn>
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence>
-                  {isLoading ? (
+                  {isLoading && coffees.length === 0 ? (
                     <motion.div
                       className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
                       initial={{ opacity: 0 }}
