@@ -37,6 +37,7 @@ model Roaster {
 
   @@index([name])
   @@index([userId])
+  @@index([userId, name])
   @@map("roasters")
 }
 
@@ -64,6 +65,7 @@ model Coffee {
   @@index([name])
   @@index([userId])
   @@index([roasterId])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("coffees")
 }
 
