@@ -57,6 +57,7 @@ function HomePage() {
     isLoading,
     error,
     fetchBootstrap,
+    prefetchCoffeeById,
     fetchCoffees,
     fetchRoasters,
     setSessionUser,
@@ -69,6 +70,7 @@ function HomePage() {
       isLoading: state.isLoading,
       error: state.error,
       fetchBootstrap: state.fetchBootstrap,
+      prefetchCoffeeById: state.prefetchCoffeeById,
       fetchCoffees: state.fetchCoffees,
       fetchRoasters: state.fetchRoasters,
       setSessionUser: state.setSessionUser,
@@ -87,13 +89,7 @@ function HomePage() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;
-    void fetchBootstrap();
-
-    // Keep first contentful load focused on coffee cards, then warm roasters in idle time.
-    const preloadRoasters = () => {
-      void fetchRoasters();
-    };
-
+    let isCancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let idleId: number | undefined;
     const requestIdle = (globalThis as typeof globalThis & {
@@ -104,13 +100,32 @@ function HomePage() {
       cancelIdleCallback?: (handle: number) => void;
     }).requestIdleCallback;
 
-    if (requestIdle) {
-      idleId = requestIdle(() => preloadRoasters(), { timeout: 1_500 });
-    } else {
-      timeoutId = setTimeout(preloadRoasters, 0);
-    }
+    const preloadRoasters = () => {
+      if (isCancelled) return;
+      void fetchRoasters();
+    };
+
+    const bootstrapAndPrefetch = async () => {
+      await fetchBootstrap();
+      if (isCancelled) return;
+
+      const newestCoffeeId = useCoffeeStore.getState().coffees[0]?.id;
+      if (newestCoffeeId) {
+        void prefetchCoffeeById(newestCoffeeId);
+      }
+
+      // Lower priority than newest-coffee prefetch.
+      if (requestIdle) {
+        idleId = requestIdle(() => preloadRoasters(), { timeout: 1_500 });
+      } else {
+        timeoutId = setTimeout(preloadRoasters, 0);
+      }
+    };
+
+    void bootstrapAndPrefetch();
 
     return () => {
+      isCancelled = true;
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId);
       }
@@ -122,7 +137,7 @@ function HomePage() {
         cancelIdle(idleId);
       }
     };
-  }, [fetchBootstrap, fetchRoasters, isLoaded, isSignedIn, userId]);
+  }, [fetchBootstrap, prefetchCoffeeById, fetchRoasters, isLoaded, isSignedIn, userId]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;

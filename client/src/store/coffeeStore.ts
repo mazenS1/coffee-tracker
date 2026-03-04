@@ -21,6 +21,7 @@ interface CoffeeStore {
   // Data
   sessionUserId: string | null;
   coffees: Coffee[];
+  prefetchedCoffeeById: Record<string, Coffee>;
   roasters: Roaster[];
   roastersFetchedAt: number | null;
   roastersUserId: string | null;
@@ -48,6 +49,7 @@ interface CoffeeStore {
     cursor?: string;
     includeRoasters?: boolean;
   }) => Promise<void>;
+  prefetchCoffeeById: (id: string) => Promise<void>;
   fetchCoffees: (params?: { page?: number; search?: string }) => Promise<void>;
   fetchCoffeeById: (id: string) => Promise<void>;
   addCoffee: (coffee: CreateCoffeeInput) => Promise<Coffee | undefined>;
@@ -77,6 +79,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // Initial state
   sessionUserId: null,
   coffees: [],
+  prefetchedCoffeeById: {},
   roasters: [],
   roastersFetchedAt: null,
   roastersUserId: null,
@@ -172,6 +175,27 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     }
   },
 
+  prefetchCoffeeById: async (id) => {
+    if (!id) return;
+
+    const state = get();
+    if (state.prefetchedCoffeeById[id]) {
+      return;
+    }
+
+    try {
+      const response = await coffeeApi.getById(id);
+      set((currentState) => ({
+        prefetchedCoffeeById: {
+          ...currentState.prefetchedCoffeeById,
+          [id]: response.data,
+        },
+      }));
+    } catch {
+      // Ignore prefetch failures to avoid surfacing non-critical background errors.
+    }
+  },
+
   fetchCoffees: async (params) => {
     set({ isLoading: true, error: null });
     try {
@@ -200,12 +224,21 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       set((state) => {
         // Ignore stale responses when the user has already navigated elsewhere.
         if (state.selectedCoffeeId !== id) {
-          return {};
+          return {
+            prefetchedCoffeeById: {
+              ...state.prefetchedCoffeeById,
+              [id]: response.data,
+            },
+          };
         }
 
         return {
           selectedCoffee: response.data,
           selectedCoffeeId: id,
+          prefetchedCoffeeById: {
+            ...state.prefetchedCoffeeById,
+            [id]: response.data,
+          },
           isLoadingCoffee: false,
         };
       });
@@ -409,6 +442,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       return {
         sessionUserId: userId,
         coffees: [],
+        prefetchedCoffeeById: {},
         roasters: [],
         roastersFetchedAt: null,
         roastersUserId: null,
@@ -429,14 +463,18 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
 
   setSelectedCoffee: (id) => {
     if (id) {
+      const prefetchedCoffee = get().prefetchedCoffeeById[id] ?? null;
       const previewCoffee = get().coffees.find((coffee) => coffee.id === id) ?? null;
       set({
         selectedCoffeeId: id,
-        selectedCoffee: previewCoffee,
-        isLoadingCoffee: true,
+        selectedCoffee: prefetchedCoffee ?? previewCoffee,
+        isLoadingCoffee: prefetchedCoffee ? false : true,
         error: null,
       });
-      void get().fetchCoffeeById(id);
+
+      if (!prefetchedCoffee) {
+        void get().fetchCoffeeById(id);
+      }
     } else {
       set({ selectedCoffeeId: null, selectedCoffee: null, isLoadingCoffee: false });
     }
