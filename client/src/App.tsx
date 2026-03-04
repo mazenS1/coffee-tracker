@@ -56,6 +56,7 @@ function HomePage() {
     selectedCoffee,
     isLoading,
     error,
+    fetchBootstrap,
     fetchCoffees,
     fetchRoasters,
     setSelectedCoffee,
@@ -66,6 +67,7 @@ function HomePage() {
       selectedCoffee: state.selectedCoffee,
       isLoading: state.isLoading,
       error: state.error,
+      fetchBootstrap: state.fetchBootstrap,
       fetchCoffees: state.fetchCoffees,
       fetchRoasters: state.fetchRoasters,
       setSelectedCoffee: state.setSelectedCoffee,
@@ -74,9 +76,42 @@ function HomePage() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    fetchCoffees();
-    fetchRoasters();
-  }, [fetchCoffees, fetchRoasters, isLoaded, isSignedIn]);
+    void fetchBootstrap();
+
+    // Keep first contentful load focused on coffee cards, then warm roasters in idle time.
+    const preloadRoasters = () => {
+      void fetchRoasters();
+    };
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let idleId: number | undefined;
+    const requestIdle = (globalThis as typeof globalThis & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    }).requestIdleCallback;
+
+    if (requestIdle) {
+      idleId = requestIdle(() => preloadRoasters(), { timeout: 1_500 });
+    } else {
+      timeoutId = setTimeout(preloadRoasters, 0);
+    }
+
+    return () => {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+
+      const cancelIdle = (globalThis as typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+      }).cancelIdleCallback;
+      if (idleId !== undefined && cancelIdle) {
+        cancelIdle(idleId);
+      }
+    };
+  }, [fetchBootstrap, fetchRoasters, isLoaded, isSignedIn]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;

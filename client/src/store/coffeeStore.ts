@@ -8,7 +8,9 @@ import type {
   CreateCupInput,
   UpdateCupInput,
 } from '@coffee-tracker/shared';
-import { coffeeApi, cupApi, roasterApi } from '../api/client';
+import { bootstrapApi, coffeeApi, cupApi, roasterApi } from '../api/client';
+
+const ROASTER_CACHE_TTL_MS = 300_000;
 
 // =============================================================================
 // STORE STATE
@@ -18,8 +20,10 @@ interface CoffeeStore {
   // Data
   coffees: Coffee[];
   roasters: Roaster[];
+  roastersFetchedAt: number | null;
   selectedCoffeeId: string | null;
   selectedCoffee: Coffee | null;
+  bootstrapCursor: string | null;
 
   // Loading states
   isLoading: boolean;
@@ -36,6 +40,11 @@ interface CoffeeStore {
   };
 
   // Actions - Coffees
+  fetchBootstrap: (params?: {
+    limit?: number;
+    cursor?: string;
+    includeRoasters?: boolean;
+  }) => Promise<void>;
   fetchCoffees: (params?: { page?: number; search?: string }) => Promise<void>;
   fetchCoffeeById: (id: string) => Promise<void>;
   addCoffee: (coffee: CreateCoffeeInput) => Promise<Coffee | undefined>;
@@ -48,7 +57,7 @@ interface CoffeeStore {
   deleteCup: (id: string) => Promise<void>;
 
   // Actions - Roasters
-  fetchRoasters: () => Promise<void>;
+  fetchRoasters: (options?: { force?: boolean }) => Promise<void>;
   addRoaster: (name: string) => Promise<Roaster | undefined>;
 
   // Actions - UI
@@ -64,8 +73,10 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // Initial state
   coffees: [],
   roasters: [],
+  roastersFetchedAt: null,
   selectedCoffeeId: null,
   selectedCoffee: null,
+  bootstrapCursor: null,
   isLoading: false,
   isLoadingCoffee: false,
   error: null,
@@ -80,6 +91,40 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // ---------------------------------------------------------------------------
   // COFFEE ACTIONS
   // ---------------------------------------------------------------------------
+
+  fetchBootstrap: async (params) => {
+    set({ isLoading: true, error: null });
+    try {
+      const limit = params?.limit ?? 20;
+      const response = await bootstrapApi.get({
+        limit,
+        cursor: params?.cursor,
+        includeRoasters: params?.includeRoasters ?? false,
+      });
+
+      set((state) => ({
+        coffees: response.data.coffees,
+        roasters: response.data.roasters ?? state.roasters,
+        roastersFetchedAt: response.data.roasters
+          ? Date.now()
+          : state.roastersFetchedAt,
+        bootstrapCursor: response.page.nextCursor,
+        pagination: {
+          page: 1,
+          limit,
+          total: response.data.coffees.length,
+          totalPages: 1,
+          hasMore: response.page.hasMore,
+        },
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch bootstrap data',
+        isLoading: false,
+      });
+    }
+  },
 
   fetchCoffees: async (params) => {
     set({ isLoading: true, error: null });
@@ -262,10 +307,22 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // ROASTER ACTIONS
   // ---------------------------------------------------------------------------
 
-  fetchRoasters: async () => {
+  fetchRoasters: async (options) => {
+    const { roastersFetchedAt } = get();
+    if (
+      !options?.force &&
+      roastersFetchedAt !== null &&
+      Date.now() - roastersFetchedAt < ROASTER_CACHE_TTL_MS
+    ) {
+      return;
+    }
+
     try {
       const response = await roasterApi.getAll();
-      set({ roasters: response.data });
+      set({
+        roasters: response.data,
+        roastersFetchedAt: Date.now(),
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch roasters',

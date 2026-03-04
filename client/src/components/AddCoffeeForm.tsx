@@ -66,12 +66,13 @@ function getRoasterOptions(roasters: { id: string; name: string }[]) {
 }
 
 export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
-  const { addCoffee, addRoaster, roasters, fetchCoffees } = useCoffeeStore(
+  const { addCoffee, addRoaster, roasters, fetchCoffees, fetchRoasters } = useCoffeeStore(
     useShallow((state) => ({
       addCoffee: state.addCoffee,
       addRoaster: state.addRoaster,
       roasters: state.roasters,
       fetchCoffees: state.fetchCoffees,
+      fetchRoasters: state.fetchRoasters,
     })),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,6 +101,11 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
       block: "nearest",
     });
   }, [expandedSection]);
+
+  useEffect(() => {
+    if (roasters.length > 0) return;
+    void fetchRoasters();
+  }, [fetchRoasters, roasters.length]);
 
   const toggleQuickNote = (note: string) => {
     setFormData((prev) => {
