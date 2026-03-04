@@ -23,16 +23,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Split vendor code into stable, cacheable chunks.
-        // When app code changes, the browser only re-downloads the changed
-        // app chunk — the vendor chunks stay cache-hit on every deploy.
+        // Split large, independently-cacheable vendor libraries.
+        // Only split packages that are truly independent (no internal circular
+        // refs with the rest of the bundle). React and its ecosystem are left
+        // to Vite's automatic chunking — it resolves React's own internal
+        // dependencies correctly and avoids circular-chunk initialization errors.
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('framer-motion')) return 'vendor-motion';
           if (id.includes('@clerk')) return 'vendor-clerk';
-          if (id.includes('react-router')) return 'vendor-router';
-          if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
-          return 'vendor-misc';
+          if (id.includes('react-router-dom') || id.includes('react-router/')) return 'vendor-router';
         },
       },
     },
