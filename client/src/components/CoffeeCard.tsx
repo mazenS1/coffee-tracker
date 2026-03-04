@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Coffee as CoffeeIcon, Flame } from "lucide-react";
 import type { Coffee, RoastLevel } from "@coffee-tracker/shared";
@@ -16,6 +16,7 @@ function getOriginFlag(origin: string | null | undefined): string | null {
 interface CoffeeCardProps {
   coffee: Coffee;
   onSelect: (coffeeId: string) => void;
+  onPrefetch?: (coffeeId: string) => void;
   index: number;
 }
 
@@ -29,12 +30,21 @@ const ROAST_COLORS: Record<RoastLevel, string> = {
 export const CoffeeCard = memo(function CoffeeCard({
   coffee,
   onSelect,
+  onPrefetch,
   index,
 }: CoffeeCardProps) {
   const cupsCount = coffee._count?.cups || coffee.cups?.length || 0;
   const roastColor = ROAST_COLORS[coffee.roastLevel];
   const shouldAnimateIn = index < 12;
   const entryDelay = Math.min(index, 6) * 0.03;
+
+  // onPointerDown fires the moment a finger touches the screen (~100-150 ms
+  // before the click event), giving us a prefetch head-start on mobile.
+  // onMouseEnter covers desktop hover (even more lead time).
+  // Both call the same handler; the store deduplicates in-flight requests.
+  const handlePrefetch = useCallback(() => {
+    onPrefetch?.(coffee.id);
+  }, [coffee.id, onPrefetch]);
 
   return (
     <motion.article
@@ -43,6 +53,8 @@ export const CoffeeCard = memo(function CoffeeCard({
         "shadow-sm transition-shadow hover:shadow-md",
       )}
       onClick={() => onSelect(coffee.id)}
+      onPointerDown={handlePrefetch}
+      onMouseEnter={handlePrefetch}
       initial={shouldAnimateIn ? { opacity: 0, y: 16 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut", delay: shouldAnimateIn ? entryDelay : 0 }}

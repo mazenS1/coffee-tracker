@@ -41,6 +41,7 @@ const SignUpPage = lazy(async () => {
 });
 
 const preloadCoffeeDetailModule = () => import("./components/CoffeeDetail");
+const preloadAddCupFormModule = () => import("./components/AddCupForm");
 
 const CoffeeDetail = lazy(async () => {
   const module = await preloadCoffeeDetailModule();
@@ -92,26 +93,39 @@ function HomePage() {
     if (!isLoaded || !isSignedIn || !userId) return;
     let isCancelled = false;
 
+    // Kick off JS-chunk downloads immediately — in parallel with the API call.
+    // CoffeeDetail is the most likely next screen; AddCupForm is the most likely
+    // action inside it. Both start downloading now so clicking feels instant.
+    void preloadCoffeeDetailModule();
+    void preloadAddCupFormModule();
+
+    // Speculative prefetch: we persisted the latest coffee ID at the end of the
+    // last session, so we know what to fetch before bootstrap even returns.
+    // This fires in PARALLEL with fetchBootstrap — saving the full bootstrap
+    // round-trip as wasted wait time on every return visit.
+    const speculativeCoffeeId = getHotCoffeeId(userId);
+    if (speculativeCoffeeId) {
+      void prefetchCoffeeById(speculativeCoffeeId);
+    }
+
     const bootstrapAndPrefetch = async () => {
       await fetchBootstrap({ includeRoasters: false });
       if (isCancelled) return;
 
       const state = useCoffeeStore.getState();
-      const hotCoffeeId = state.sessionUserId
-        ? getHotCoffeeId(state.sessionUserId)
-        : null;
-      const hasHotCoffee = hotCoffeeId
-        ? state.coffees.some((coffee) => coffee.id === hotCoffeeId)
-        : false;
-      const prefetchCoffeeId = hasHotCoffee ? hotCoffeeId : state.coffees[0]?.id;
+      const latestCoffeeId = state.coffees[0]?.id;
 
-      if (state.sessionUserId && prefetchCoffeeId) {
-        setHotCoffeeId(state.sessionUserId, prefetchCoffeeId);
+      // Persist the current latest so the NEXT session can prefetch it
+      // speculatively (before bootstrap returns).
+      if (latestCoffeeId) {
+        setHotCoffeeId(userId, latestCoffeeId);
       }
 
-      if (prefetchCoffeeId) {
-        void preloadCoffeeDetailModule();
-        void prefetchCoffeeById(prefetchCoffeeId);
+      // If the latest coffee is different from what we already started fetching,
+      // kick off a second prefetch. The store deduplicates in-flight requests
+      // so there's no risk of double-fetching the same coffee.
+      if (latestCoffeeId && latestCoffeeId !== speculativeCoffeeId) {
+        void prefetchCoffeeById(latestCoffeeId);
       }
     };
 
@@ -345,6 +359,7 @@ function HomePage() {
                         coffee={coffee}
                         index={index}
                         onSelect={setSelectedCoffee}
+                        onPrefetch={prefetchCoffeeById}
                       />
                     ))
                   )}

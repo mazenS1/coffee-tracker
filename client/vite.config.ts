@@ -20,4 +20,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split vendor code into stable, cacheable chunks.
+        // When app code changes, the browser only re-downloads the changed
+        // app chunk — the vendor chunks stay cache-hit on every deploy.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          if (id.includes('@clerk')) return 'vendor-clerk';
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+          return 'vendor-misc';
+        },
+      },
+    },
+  },
 })

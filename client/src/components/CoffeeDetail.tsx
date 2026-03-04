@@ -108,6 +108,11 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
   const isDetailLoading =
     isLoadingCoffee && (!coffee || coffee.id !== coffeeId || !coffee.cups);
 
+  // coffee.cups === undefined means we have the list-preview (with _count only)
+  // and the full fetch is still in flight. Show a cups skeleton rather than the
+  // misleading "no cups yet" empty state.
+  const isCupsLoading = !isDetailLoading && coffee !== null && coffee.cups === undefined;
+
   const handleDelete = async () => {
     if (!coffee) return;
     if (confirm("هل أنت متأكد من حذف هذه القهوة؟")) {
@@ -308,7 +313,17 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
 
             <div className="space-y-2">
               <AnimatePresence>
-                {cups.length === 0 ? (
+                {isCupsLoading ? (
+                  <motion.div
+                    className="space-y-2"
+                    key="cups-skeleton"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="h-24 animate-pulse rounded-xl border border-border bg-card" />
+                    <div className="h-24 animate-pulse rounded-xl border border-border bg-card" />
+                  </motion.div>
+                ) : cups.length === 0 ? (
                   <motion.div
                     className="rounded-xl border border-border bg-card p-6 text-center"
                     initial={{ opacity: 0 }}
