@@ -8,9 +8,10 @@ import type {
   CreateCupInput,
   UpdateCupInput,
 } from '@coffee-tracker/shared';
-import { bootstrapApi, coffeeApi, cupApi, roasterApi } from '../api/client';
+import { ApiError, bootstrapApi, coffeeApi, cupApi, roasterApi } from '../api/client';
 
 const ROASTER_CACHE_TTL_MS = 300_000;
+const DEFAULT_FIRST_PAGE_LIMIT = 20;
 
 // =============================================================================
 // STORE STATE
@@ -94,8 +95,9 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
 
   fetchBootstrap: async (params) => {
     set({ isLoading: true, error: null });
+    const limit = params?.limit ?? DEFAULT_FIRST_PAGE_LIMIT;
+
     try {
-      const limit = params?.limit ?? 20;
       const response = await bootstrapApi.get({
         limit,
         cursor: params?.cursor,
@@ -119,6 +121,42 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
         isLoading: false,
       }));
     } catch (error) {
+      const status =
+        error instanceof ApiError
+          ? error.status
+          : typeof (error as { status?: unknown })?.status === 'number'
+            ? ((error as { status: number }).status)
+            : null;
+
+      // Backward compatibility: if backend does not have /api/v2/bootstrap yet,
+      // fall back to the original /api/v1/coffees flow instead of failing first load.
+      if (status === 404) {
+        try {
+          const fallbackResponse = await coffeeApi.getAll({
+            page: 1,
+            limit,
+          });
+
+          set({
+            coffees: fallbackResponse.data,
+            bootstrapCursor: null,
+            pagination: fallbackResponse.pagination,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        } catch (fallbackError) {
+          set({
+            error:
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : 'Failed to fetch coffees',
+            isLoading: false,
+          });
+          return;
+        }
+      }
+
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch bootstrap data',
         isLoading: false,
@@ -131,7 +169,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
     try {
       const response = await coffeeApi.getAll({
         page: params?.page || 1,
-        limit: 20,
+        limit: DEFAULT_FIRST_PAGE_LIMIT,
         search: params?.search,
       });
       set({

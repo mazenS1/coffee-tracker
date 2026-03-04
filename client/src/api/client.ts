@@ -18,7 +18,25 @@ import type {
 // Use relative URL to go through Vite's proxy in development
 // This allows the app to work from any device on the network
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-const BOOTSTRAP_API_BASE_URL = import.meta.env.VITE_BOOTSTRAP_API_URL || '/api/v2';
+const BOOTSTRAP_API_BASE_URL = (() => {
+  const explicitBootstrapUrl = import.meta.env.VITE_BOOTSTRAP_API_URL as
+    | string
+    | undefined;
+  if (explicitBootstrapUrl) {
+    return explicitBootstrapUrl;
+  }
+
+  // Derive v2 endpoint from configured v1 base to avoid cross-origin/path mismatches.
+  if (/\/api\/v1\/?$/i.test(API_BASE_URL)) {
+    return API_BASE_URL.replace(/\/api\/v1\/?$/i, '/api/v2');
+  }
+
+  if (/\/v1\/?$/i.test(API_BASE_URL)) {
+    return API_BASE_URL.replace(/\/v1\/?$/i, '/v2');
+  }
+
+  return `${API_BASE_URL.replace(/\/$/, '')}/v2`;
+})();
 
 // =============================================================================
 // AUTH TOKEN MANAGEMENT
