@@ -25,7 +25,7 @@ export function ModalShell({ children, onClose, panelClassName }: ModalShellProp
         initial={{ opacity: 0, y: "100%" }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        transition={{ type: "tween", duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
         onClick={(event) => event.stopPropagation()}
       >
         {children}
