@@ -66,12 +66,11 @@ function getRoasterOptions(roasters: { id: string; name: string }[]) {
 }
 
 export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
-  const { addCoffee, addRoaster, roasters, fetchCoffees, fetchRoasters } = useCoffeeStore(
+  const { addCoffee, addRoaster, roasters, fetchRoasters } = useCoffeeStore(
     useShallow((state) => ({
       addCoffee: state.addCoffee,
       addRoaster: state.addRoaster,
       roasters: state.roasters,
-      fetchCoffees: state.fetchCoffees,
       fetchRoasters: state.fetchRoasters,
     })),
   );
@@ -186,7 +185,6 @@ export function AddCoffeeForm({ onClose }: AddCoffeeFormProps) {
       };
 
       await addCoffee(payload);
-      await fetchCoffees();
       onClose();
     } finally {
       setIsSubmitting(false);

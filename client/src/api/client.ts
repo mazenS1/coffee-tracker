@@ -45,6 +45,18 @@ const BOOTSTRAP_API_BASE_URL = (() => {
 // Store for the getToken function from Clerk
 let getTokenFn: (() => Promise<string | null>) | null = null;
 let tokenPromise: Promise<string | null> | null = null;
+let cachedToken: { value: string | null; expiresAt: number } | null = null;
+
+const parsePositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return parsed;
+};
+
+const AUTH_TOKEN_CACHE_TTL_MS = parsePositiveInt(
+  import.meta.env.VITE_AUTH_TOKEN_CACHE_TTL_MS as string | undefined,
+  30_000,
+);
 
 /**
  * Set the getToken function from Clerk's useAuth hook.
@@ -52,6 +64,8 @@ let tokenPromise: Promise<string | null> | null = null;
  */
 export function setAuthTokenGetter(fn: () => Promise<string | null>) {
   getTokenFn = fn;
+  tokenPromise = null;
+  cachedToken = null;
 }
 
 // =============================================================================
@@ -71,10 +85,23 @@ class ApiError extends Error {
 async function getAuthToken(): Promise<string | null> {
   if (!getTokenFn) return null;
 
+  const now = Date.now();
+  if (cachedToken && cachedToken.expiresAt > now) {
+    return cachedToken.value;
+  }
+
   if (!tokenPromise) {
-    tokenPromise = getTokenFn().finally(() => {
-      tokenPromise = null;
-    });
+    tokenPromise = getTokenFn()
+      .then((token) => {
+        cachedToken = {
+          value: token,
+          expiresAt: Date.now() + AUTH_TOKEN_CACHE_TTL_MS,
+        };
+        return token;
+      })
+      .finally(() => {
+        tokenPromise = null;
+      });
   }
 
   return tokenPromise;
