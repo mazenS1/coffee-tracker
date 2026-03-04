@@ -48,7 +48,7 @@ function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasMountedSearch = useRef(false);
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
 
   const {
     coffees,
@@ -56,8 +56,11 @@ function HomePage() {
     selectedCoffee,
     isLoading,
     error,
+    fetchBootstrap,
+    prefetchCoffeeById,
     fetchCoffees,
     fetchRoasters,
+    setSessionUser,
     setSelectedCoffee,
   } = useCoffeeStore(
     useShallow((state) => ({
@@ -66,20 +69,78 @@ function HomePage() {
       selectedCoffee: state.selectedCoffee,
       isLoading: state.isLoading,
       error: state.error,
+      fetchBootstrap: state.fetchBootstrap,
+      prefetchCoffeeById: state.prefetchCoffeeById,
       fetchCoffees: state.fetchCoffees,
       fetchRoasters: state.fetchRoasters,
+      setSessionUser: state.setSessionUser,
       setSelectedCoffee: state.setSelectedCoffee,
     })),
   );
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    fetchCoffees();
-    fetchRoasters();
-  }, [fetchCoffees, fetchRoasters, isLoaded, isSignedIn]);
+    if (!isLoaded || !isSignedIn || !userId) {
+      setSessionUser(null);
+      return;
+    }
+
+    setSessionUser(userId);
+  }, [isLoaded, isSignedIn, setSessionUser, userId]);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || !userId) return;
+    let isCancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let idleId: number | undefined;
+    const requestIdle = (globalThis as typeof globalThis & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    }).requestIdleCallback;
+
+    const preloadRoasters = () => {
+      if (isCancelled) return;
+      void fetchRoasters();
+    };
+
+    const bootstrapAndPrefetch = async () => {
+      await fetchBootstrap();
+      if (isCancelled) return;
+
+      const newestCoffeeId = useCoffeeStore.getState().coffees[0]?.id;
+      if (newestCoffeeId) {
+        void prefetchCoffeeById(newestCoffeeId);
+      }
+
+      // Lower priority than newest-coffee prefetch.
+      if (requestIdle) {
+        idleId = requestIdle(() => preloadRoasters(), { timeout: 1_500 });
+      } else {
+        timeoutId = setTimeout(preloadRoasters, 0);
+      }
+    };
+
+    void bootstrapAndPrefetch();
+
+    return () => {
+      isCancelled = true;
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+
+      const cancelIdle = (globalThis as typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+      }).cancelIdleCallback;
+      if (idleId !== undefined && cancelIdle) {
+        cancelIdle(idleId);
+      }
+    };
+  }, [fetchBootstrap, prefetchCoffeeById, fetchRoasters, isLoaded, isSignedIn, userId]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) return;
     if (!hasMountedSearch.current) {
       hasMountedSearch.current = true;
       return;
@@ -90,7 +151,7 @@ function HomePage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
+  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn, userId]);
 
   const totalCups = useMemo(
     () => coffees.reduce((acc, coffee) => acc + (coffee._count?.cups || 0), 0),

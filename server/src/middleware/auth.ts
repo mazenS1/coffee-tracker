@@ -14,6 +14,45 @@ import prisma from '../lib/prisma';
 // Re-export Clerk's middleware for use in app.ts
 export { clerkMiddleware, clerkRequireAuth as requireAuth };
 
+type DbUser = {
+  id: string;
+  clerkId: string;
+  name: string;
+  email: string;
+};
+
+type CachedDbUser = {
+  user: DbUser;
+  expiresAt: number;
+};
+
+const parsePositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return parsed;
+};
+
+const dbUserCache = new Map<string, CachedDbUser>();
+const dbUserCacheTtlMs = parsePositiveInt(process.env.DB_USER_CACHE_TTL_MS, 300_000);
+
+const getCachedDbUser = (clerkUserId: string): DbUser | null => {
+  const cached = dbUserCache.get(clerkUserId);
+  if (!cached) return null;
+  if (cached.expiresAt < Date.now()) {
+    dbUserCache.delete(clerkUserId);
+    return null;
+  }
+
+  return cached.user;
+};
+
+const setCachedDbUser = (user: DbUser): void => {
+  dbUserCache.set(user.clerkId, {
+    user,
+    expiresAt: Date.now() + dbUserCacheTtlMs,
+  });
+};
+
 // -----------------------------------------------------------------------------
 // TYPE EXTENSIONS
 // -----------------------------------------------------------------------------
@@ -22,12 +61,7 @@ export { clerkMiddleware, clerkRequireAuth as requireAuth };
 declare global {
   namespace Express {
     interface Request {
-      dbUser?: {
-        id: string;
-        clerkId: string;
-        name: string;
-        email: string;
-      };
+      dbUser?: DbUser;
     }
   }
 }
@@ -54,6 +88,12 @@ export const attachDbUser = async (
     const auth = getAuth(req);
     // requireAuth() - Redirects unauthenticated users to sign-in
     const clerkUserId = auth.userId!;
+    const cachedUser = getCachedDbUser(clerkUserId);
+    if (cachedUser) {
+      req.dbUser = cachedUser;
+      return next();
+    }
+
     let user = await prisma.user.findUnique({
       where: { clerkId: clerkUserId },
       select: {
@@ -77,6 +117,7 @@ export const attachDbUser = async (
     }
 
     req.dbUser = user;
+    setCachedDbUser(user);
     next();
   } catch (error) {
     next(error);
@@ -146,6 +187,9 @@ const provisionDbUserFromClerk = async (clerkUserId: string) => {
         name: true,
         email: true,
       },
+    }).then((user) => {
+      setCachedDbUser(user);
+      return user;
     });
   } catch (error) {
     console.error('Failed to provision database user from Clerk', {

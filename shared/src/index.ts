@@ -196,6 +196,29 @@ export interface CoffeeStats {
   }>;
 }
 
+export interface CursorPageInfo {
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface BootstrapQueryParams {
+  limit?: number;
+  cursor?: string;
+  includeRoasters?: boolean;
+}
+
+export interface BootstrapResponse {
+  data: {
+    coffees: Coffee[];
+    roasters?: Roaster[];
+  };
+  page: CursorPageInfo;
+  meta: {
+    generatedAt: string;
+    roastersFromCache?: boolean;
+  };
+}
+
 // -----------------------------------------------------------------------------
 // API QUERY TYPES
 // -----------------------------------------------------------------------------

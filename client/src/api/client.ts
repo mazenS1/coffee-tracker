@@ -11,11 +11,32 @@ import type {
   SingleResponse,
   CoffeeStats,
   CoffeeQueryParams,
+  BootstrapQueryParams,
+  BootstrapResponse,
 } from '@coffee-tracker/shared';
 
 // Use relative URL to go through Vite's proxy in development
 // This allows the app to work from any device on the network
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const BOOTSTRAP_API_BASE_URL = (() => {
+  const explicitBootstrapUrl = import.meta.env.VITE_BOOTSTRAP_API_URL as
+    | string
+    | undefined;
+  if (explicitBootstrapUrl) {
+    return explicitBootstrapUrl;
+  }
+
+  // Derive v2 endpoint from configured v1 base to avoid cross-origin/path mismatches.
+  if (/\/api\/v1\/?$/i.test(API_BASE_URL)) {
+    return API_BASE_URL.replace(/\/api\/v1\/?$/i, '/api/v2');
+  }
+
+  if (/\/v1\/?$/i.test(API_BASE_URL)) {
+    return API_BASE_URL.replace(/\/v1\/?$/i, '/v2');
+  }
+
+  return `${API_BASE_URL.replace(/\/$/, '')}/v2`;
+})();
 
 // =============================================================================
 // AUTH TOKEN MANAGEMENT
@@ -23,6 +44,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Store for the getToken function from Clerk
 let getTokenFn: (() => Promise<string | null>) | null = null;
+let tokenPromise: Promise<string | null> | null = null;
 
 /**
  * Set the getToken function from Clerk's useAuth hook.
@@ -46,14 +68,27 @@ class ApiError extends Error {
   }
 }
 
+async function getAuthToken(): Promise<string | null> {
+  if (!getTokenFn) return null;
+
+  if (!tokenPromise) {
+    tokenPromise = getTokenFn().finally(() => {
+      tokenPromise = null;
+    });
+  }
+
+  return tokenPromise;
+}
+
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  baseUrl: string = API_BASE_URL
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${baseUrl}${endpoint}`;
 
   // Get auth token from Clerk if available
-  const token = getTokenFn ? await getTokenFn() : null;
+  const token = await getAuthToken();
   const authHeaders: Record<string, string> = token
     ? { Authorization: `Bearer ${token}` }
     : {};
@@ -83,6 +118,24 @@ async function fetchApi<T>(
 
   return response.json();
 }
+
+export const bootstrapApi = {
+  get: (params?: BootstrapQueryParams): Promise<BootstrapResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    if (params?.includeRoasters !== undefined) {
+      searchParams.set('includeRoasters', String(params.includeRoasters));
+    }
+
+    const query = searchParams.toString();
+    return fetchApi(
+      `/bootstrap${query ? `?${query}` : ''}`,
+      {},
+      BOOTSTRAP_API_BASE_URL
+    );
+  },
+};
 
 // =============================================================================
 // COFFEE API
