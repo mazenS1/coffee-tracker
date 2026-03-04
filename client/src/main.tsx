@@ -1,7 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
-import { arSA } from '@clerk/localizations';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.tsx';
@@ -17,17 +16,9 @@ if (!PUBLISHABLE_KEY) {
   throw new Error('Missing Clerk Publishable Key');
 }
 
-/**
- * Arabic localization customization
- * We extend the default Arabic localization with custom translations
- * that fit our coffee-themed app better.
- */
-const arabicLocalization = {
-  ...arSA,
+const clerkLocalization = {
   signIn: {
-    ...arSA.signIn,
     start: {
-      ...arSA.signIn?.start,
       title: 'تسجيل الدخول',
       subtitle: 'مرحباً بعودتك إلى دفتر القهوة',
       actionText: 'ليس لديك حساب؟',
@@ -35,9 +26,7 @@ const arabicLocalization = {
     },
   },
   signUp: {
-    ...arSA.signUp,
     start: {
-      ...arSA.signUp?.start,
       title: 'إنشاء حساب جديد',
       subtitle: 'ابدأ رحلتك مع القهوة المختصة',
       actionText: 'لديك حساب بالفعل؟',
@@ -45,14 +34,11 @@ const arabicLocalization = {
     },
   },
   userButton: {
-    ...arSA.userButton,
     action__manageAccount: 'إدارة الحساب',
     action__signOut: 'تسجيل الخروج',
   },
   userProfile: {
-    ...arSA.userProfile,
     start: {
-      ...arSA.userProfile?.start,
       headerTitle__account: 'الحساب',
       headerTitle__security: 'الأمان',
       profileSection: {
@@ -220,7 +206,7 @@ createRoot(document.getElementById('root')!).render(
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
       afterSignOutUrl="/"
-      localization={arabicLocalization}
+      localization={clerkLocalization}
       appearance={clerkAppearance}
     >
       <BrowserRouter>
