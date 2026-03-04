@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma';
 import { Prisma } from '../../generated/prisma';
+import { clearRoasterCache, clearRoasterCacheForUser } from '../../lib/roasterCache';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -182,6 +183,12 @@ export const createRoaster = async (
       },
     });
 
+    if (roaster.userId === null) {
+      clearRoasterCache();
+    } else {
+      clearRoasterCacheForUser(roaster.userId);
+    }
+
     res.status(201).json({ data: roaster });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -244,6 +251,12 @@ export const updateRoaster = async (
       data: name !== undefined ? { name: name.trim() } : {},
     });
 
+    if (roaster.userId === null) {
+      clearRoasterCache();
+    } else {
+      clearRoasterCacheForUser(roaster.userId);
+    }
+
     res.status(200).json({ data: roaster });
   } catch (error) {
     next(error);
@@ -297,6 +310,13 @@ export const deleteRoaster = async (
     }
 
     await prisma.roaster.delete({ where: { id } });
+
+    if (existing.userId === null) {
+      clearRoasterCache();
+    } else {
+      clearRoasterCacheForUser(existing.userId);
+    }
+
     res.status(204).send();
   } catch (error) {
     next(error);

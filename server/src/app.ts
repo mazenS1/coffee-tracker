@@ -5,6 +5,7 @@ import { clerkMiddleware, requireAuth, attachDbUser } from './middleware/auth';
 import coffeeRoutes from './routes/coffeeRoutes';
 import cupRoutes from './routes/cupRoutes';
 import roasterRoutes from './routes/roasterRoutes';
+import bootstrapRoutes from './routes/bootstrapRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 
 const app = express();
@@ -63,6 +64,7 @@ app.get('/api/health', healthHandler);
 app.use('/api/v1/coffees', requireAuth(), attachDbUser, coffeeRoutes);
 app.use('/api/v1/cups', requireAuth(), attachDbUser, cupRoutes);
 app.use('/api/v1/roasters', requireAuth(), attachDbUser, roasterRoutes);
+app.use('/api/v2/bootstrap', requireAuth(), attachDbUser, bootstrapRoutes);
 
 // =============================================================================
 // ERROR HANDLING
