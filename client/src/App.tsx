@@ -18,7 +18,6 @@ import {
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
-import { CoffeeDetail } from "./components/CoffeeDetail";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
@@ -39,6 +38,13 @@ const SignInPage = lazy(async () => {
 const SignUpPage = lazy(async () => {
   const module = await import("./components/SignUpPage");
   return { default: module.SignUpPage };
+});
+
+const preloadCoffeeDetailModule = () => import("./components/CoffeeDetail");
+
+const CoffeeDetail = lazy(async () => {
+  const module = await preloadCoffeeDetailModule();
+  return { default: module.CoffeeDetail };
 });
 
 function HomePage() {
@@ -87,12 +93,7 @@ function HomePage() {
     let isCancelled = false;
 
     const bootstrapAndPrefetch = async () => {
-      const hotCoffeeIdFromStorage = getHotCoffeeId(userId);
-      if (hotCoffeeIdFromStorage) {
-        void prefetchCoffeeById(hotCoffeeIdFromStorage);
-      }
-
-      await fetchBootstrap({ includeRoasters: true });
+      await fetchBootstrap({ includeRoasters: false });
       if (isCancelled) return;
 
       const state = useCoffeeStore.getState();
@@ -109,6 +110,7 @@ function HomePage() {
       }
 
       if (prefetchCoffeeId) {
+        void preloadCoffeeDetailModule();
         void prefetchCoffeeById(prefetchCoffeeId);
       }
     };
@@ -164,12 +166,14 @@ function HomePage() {
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
-          <CoffeeDetail
-            key={`detail-${selectedCoffeeId}`}
-            coffeeId={selectedCoffeeId}
-            coffee={selectedCoffee}
-            onBack={() => setSelectedCoffee(null)}
-          />
+          <Suspense fallback={<PageLoadingFallback label="جاري فتح تفاصيل القهوة..." showSpinner={false} />}>
+            <CoffeeDetail
+              key={`detail-${selectedCoffeeId}`}
+              coffeeId={selectedCoffeeId}
+              coffee={selectedCoffee}
+              onBack={() => setSelectedCoffee(null)}
+            />
+          </Suspense>
         ) : (
           <motion.main
             key="home"
@@ -411,11 +415,21 @@ function HomePage() {
   );
 }
 
-function PageLoadingFallback({ label }: { label: string }) {
+function PageLoadingFallback({
+  label,
+  showSpinner = true,
+}: {
+  label: string;
+  showSpinner?: boolean;
+}) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4" dir="rtl">
       <div className="rounded-xl border border-border bg-card p-6 text-center">
-        <Loader2 className="mx-auto animate-spin text-accent" size={30} />
+        {showSpinner ? (
+          <Loader2 className="mx-auto animate-spin text-accent" size={30} />
+        ) : (
+          <CoffeeIcon className="mx-auto text-accent" size={30} />
+        )}
         <p className="mt-3 text-sm text-muted-foreground">{label}</p>
       </div>
     </div>
