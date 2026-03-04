@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -40,19 +40,26 @@ const SignUpPage = lazy(async () => {
   return { default: module.SignUpPage };
 });
 
-const preloadCoffeeDetailModule = () => import("./components/CoffeeDetail");
-const preloadAddCupFormModule = () => import("./components/AddCupForm");
+// Start downloading these chunks immediately when the main bundle is parsed —
+// before auth resolves and before any effects fire. By the time the user can
+// see and tap the list, the JS is already in the browser cache.
+const coffeeDetailModulePromise = import("./components/CoffeeDetail");
+void import("./components/AddCupForm");
 
-const CoffeeDetail = lazy(async () => {
-  const module = await preloadCoffeeDetailModule();
-  return { default: module.CoffeeDetail };
-});
+const CoffeeDetail = lazy(() =>
+  coffeeDetailModulePromise.then((m) => ({ default: m.CoffeeDetail })),
+);
 
 function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn, userId } = useAuth();
+  // useTransition keeps the current UI (list) visible while React silently
+  // prepares CoffeeDetail in the background. This prevents the Suspense
+  // fallback from ever showing — even in dev where lazy modules load as a
+  // waterfall of individual HTTP requests.
+  const [, startSelectTransition] = useTransition();
 
   const {
     coffees,
@@ -80,6 +87,18 @@ function HomePage() {
     })),
   );
 
+  // Wrap the selection in a transition so React silently renders CoffeeDetail
+  // in the background and only swaps once it's ready, keeping the list
+  // visible instead of flashing the Suspense fallback.
+  const handleSelectCoffee = useCallback(
+    (id: string) => {
+      startSelectTransition(() => {
+        setSelectedCoffee(id);
+      });
+    },
+    [setSelectedCoffee],
+  );
+
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) {
       setSessionUser(null);
@@ -92,12 +111,6 @@ function HomePage() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;
     let isCancelled = false;
-
-    // Kick off JS-chunk downloads immediately — in parallel with the API call.
-    // CoffeeDetail is the most likely next screen; AddCupForm is the most likely
-    // action inside it. Both start downloading now so clicking feels instant.
-    void preloadCoffeeDetailModule();
-    void preloadAddCupFormModule();
 
     // Speculative prefetch: we persisted the latest coffee ID at the end of the
     // last session, so we know what to fetch before bootstrap even returns.
@@ -358,7 +371,7 @@ function HomePage() {
                         key={coffee.id}
                         coffee={coffee}
                         index={index}
-                        onSelect={setSelectedCoffee}
+                        onSelect={handleSelectCoffee}
                         onPrefetch={prefetchCoffeeById}
                       />
                     ))

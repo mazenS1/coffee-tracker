@@ -623,22 +623,47 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   },
 
   setSelectedCoffee: (id) => {
-    if (id) {
-      const prefetchedCoffee = get().prefetchedCoffeeById[id] ?? null;
-      const previewCoffee = get().coffees.find((coffee) => coffee.id === id) ?? null;
-      set({
-        selectedCoffeeId: id,
-        selectedCoffee: prefetchedCoffee ?? previewCoffee,
-        isLoadingCoffee: prefetchedCoffee || previewCoffee ? false : true,
-        error: null,
-      });
-
-      if (!prefetchedCoffee) {
-        void get().fetchCoffeeById(id);
-      }
-    } else {
+    if (!id) {
       set({ selectedCoffeeId: null, selectedCoffee: null, isLoadingCoffee: false });
+      return;
     }
+
+    const { prefetchedCoffeeById, coffees } = get();
+    const prefetchedCoffee = prefetchedCoffeeById[id] ?? null;
+    const previewCoffee = coffees.find((coffee) => coffee.id === id) ?? null;
+
+    set({
+      selectedCoffeeId: id,
+      selectedCoffee: prefetchedCoffee ?? previewCoffee,
+      isLoadingCoffee: !prefetchedCoffee && !previewCoffee,
+      error: null,
+    });
+
+    if (prefetchedCoffee) {
+      // Full data (including cups) already in cache — nothing to fetch.
+      return;
+    }
+
+    // If a prefetch for this coffee is already in-flight, attach to it
+    // instead of firing a redundant second network request. This is the common
+    // case when the user taps the latest coffee right after the list loads.
+    const inFlightPrefetch = prefetchCoffeeRequests.get(id);
+    if (inFlightPrefetch) {
+      void inFlightPrefetch.then(() => {
+        const state = get();
+        if (state.selectedCoffeeId !== id) return; // User navigated away
+        const freshData = state.prefetchedCoffeeById[id];
+        if (freshData) {
+          set({ selectedCoffee: freshData, isLoadingCoffee: false });
+          return;
+        }
+        // Prefetch failed silently; fall back to a direct fetch.
+        void get().fetchCoffeeById(id);
+      });
+      return;
+    }
+
+    void get().fetchCoffeeById(id);
   },
 
   clearError: () => set({ error: null }),
