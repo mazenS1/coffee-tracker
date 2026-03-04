@@ -40,13 +40,12 @@ export const CoffeeCard = memo(function CoffeeCard({
     <motion.article
       className={cn(
         "group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card",
-        "shadow-sm transition-shadow will-change-transform hover:shadow-md",
+        "shadow-sm transition-shadow hover:shadow-md",
       )}
       onClick={() => onSelect(coffee.id)}
       initial={shouldAnimateIn ? { opacity: 0, y: 16 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut", delay: shouldAnimateIn ? entryDelay : 0 }}
-      whileHover={{ y: -4, transition: { duration: 0.16, ease: "easeOut" } }}
     >
       {/* Roast color bar — gradient for depth */}
       <div

@@ -160,8 +160,8 @@ function HomePage() {
               "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a2c17' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
           }}
         />
-        <div className="absolute -left-1/4 top-1/4 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
-        <div className="absolute -right-1/4 bottom-1/3 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -left-1/4 top-1/4 hidden h-72 w-72 rounded-full bg-accent/15 blur-3xl md:block" />
+        <div className="absolute -right-1/4 bottom-1/3 hidden h-80 w-80 rounded-full bg-primary/20 blur-3xl md:block" />
       </div>
 
       <AnimatePresence mode="wait">
@@ -356,10 +356,9 @@ function HomePage() {
                   type="button"
                   className="fixed bottom-[calc(1rem+var(--safe-bottom))] left-4 z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground md:bottom-6 md:left-6 md:size-16"
                   onClick={() => setShowAddCoffee(true)}
-                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.35, duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
                   whileTap={{ scale: 0.9 }}
                   aria-label="إضافة قهوة جديدة"
                 >
