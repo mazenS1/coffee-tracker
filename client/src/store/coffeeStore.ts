@@ -19,9 +19,11 @@ const DEFAULT_FIRST_PAGE_LIMIT = 20;
 
 interface CoffeeStore {
   // Data
+  sessionUserId: string | null;
   coffees: Coffee[];
   roasters: Roaster[];
   roastersFetchedAt: number | null;
+  roastersUserId: string | null;
   selectedCoffeeId: string | null;
   selectedCoffee: Coffee | null;
   bootstrapCursor: string | null;
@@ -62,6 +64,7 @@ interface CoffeeStore {
   addRoaster: (name: string) => Promise<Roaster | undefined>;
 
   // Actions - UI
+  setSessionUser: (userId: string | null) => void;
   setSelectedCoffee: (id: string | null) => void;
   clearError: () => void;
 }
@@ -72,9 +75,11 @@ interface CoffeeStore {
 
 export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // Initial state
+  sessionUserId: null,
   coffees: [],
   roasters: [],
   roastersFetchedAt: null,
+  roastersUserId: null,
   selectedCoffeeId: null,
   selectedCoffee: null,
   bootstrapCursor: null,
@@ -110,6 +115,9 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
         roastersFetchedAt: response.data.roasters
           ? Date.now()
           : state.roastersFetchedAt,
+        roastersUserId: response.data.roasters
+          ? state.sessionUserId
+          : state.roastersUserId,
         bootstrapCursor: response.page.nextCursor,
         pagination: {
           page: 1,
@@ -346,9 +354,11 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // ---------------------------------------------------------------------------
 
   fetchRoasters: async (options) => {
-    const { roastersFetchedAt } = get();
+    const { roastersFetchedAt, roastersUserId, sessionUserId } = get();
     if (
       !options?.force &&
+      sessionUserId !== null &&
+      roastersUserId === sessionUserId &&
       roastersFetchedAt !== null &&
       Date.now() - roastersFetchedAt < ROASTER_CACHE_TTL_MS
     ) {
@@ -360,6 +370,7 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       set({
         roasters: response.data,
         roastersFetchedAt: Date.now(),
+        roastersUserId: get().sessionUserId,
       });
     } catch (error) {
       set({
@@ -373,6 +384,8 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
       const response = await roasterApi.create({ name });
       set((state) => ({
         roasters: [...state.roasters, response.data],
+        roastersFetchedAt: Date.now(),
+        roastersUserId: state.sessionUserId,
       }));
       return response.data;
     } catch (error) {
@@ -386,6 +399,33 @@ export const useCoffeeStore = create<CoffeeStore>()((set, get) => ({
   // ---------------------------------------------------------------------------
   // UI ACTIONS
   // ---------------------------------------------------------------------------
+
+  setSessionUser: (userId) => {
+    set((state) => {
+      if (state.sessionUserId === userId) {
+        return {};
+      }
+
+      return {
+        sessionUserId: userId,
+        coffees: [],
+        roasters: [],
+        roastersFetchedAt: null,
+        roastersUserId: null,
+        selectedCoffeeId: null,
+        selectedCoffee: null,
+        bootstrapCursor: null,
+        error: null,
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+        },
+      };
+    });
+  },
 
   setSelectedCoffee: (id) => {
     if (id) {

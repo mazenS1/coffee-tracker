@@ -48,7 +48,7 @@ function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasMountedSearch = useRef(false);
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
 
   const {
     coffees,
@@ -59,6 +59,7 @@ function HomePage() {
     fetchBootstrap,
     fetchCoffees,
     fetchRoasters,
+    setSessionUser,
     setSelectedCoffee,
   } = useCoffeeStore(
     useShallow((state) => ({
@@ -70,12 +71,22 @@ function HomePage() {
       fetchBootstrap: state.fetchBootstrap,
       fetchCoffees: state.fetchCoffees,
       fetchRoasters: state.fetchRoasters,
+      setSessionUser: state.setSessionUser,
       setSelectedCoffee: state.setSelectedCoffee,
     })),
   );
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || !userId) {
+      setSessionUser(null);
+      return;
+    }
+
+    setSessionUser(userId);
+  }, [isLoaded, isSignedIn, setSessionUser, userId]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) return;
     void fetchBootstrap();
 
     // Keep first contentful load focused on coffee cards, then warm roasters in idle time.
@@ -111,10 +122,10 @@ function HomePage() {
         cancelIdle(idleId);
       }
     };
-  }, [fetchBootstrap, fetchRoasters, isLoaded, isSignedIn]);
+  }, [fetchBootstrap, fetchRoasters, isLoaded, isSignedIn, userId]);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || !userId) return;
     if (!hasMountedSearch.current) {
       hasMountedSearch.current = true;
       return;
@@ -125,7 +136,7 @@ function HomePage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn]);
+  }, [searchQuery, fetchCoffees, isLoaded, isSignedIn, userId]);
 
   const totalCups = useMemo(
     () => coffees.reduce((acc, coffee) => acc + (coffee._count?.cups || 0), 0),
