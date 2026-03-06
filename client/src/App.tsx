@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -18,6 +18,8 @@ import {
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
+import { CoffeeCardSkeleton } from "./components/CoffeeCardSkeleton";
+import { CoffeeDetail } from "./components/CoffeeDetail";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
@@ -40,26 +42,15 @@ const SignUpPage = lazy(async () => {
   return { default: module.SignUpPage };
 });
 
-// Start downloading these chunks immediately when the main bundle is parsed —
-// before auth resolves and before any effects fire. By the time the user can
-// see and tap the list, the JS is already in the browser cache.
-const coffeeDetailModulePromise = import("./components/CoffeeDetail");
+// Keep the add-cup modal split out of the initial bundle because it is only
+// needed from within CoffeeDetail after the user enters that screen.
 void import("./components/AddCupForm");
-
-const CoffeeDetail = lazy(() =>
-  coffeeDetailModulePromise.then((m) => ({ default: m.CoffeeDetail })),
-);
 
 function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn, userId } = useAuth();
-  // useTransition keeps the current UI (list) visible while React silently
-  // prepares CoffeeDetail in the background. This prevents the Suspense
-  // fallback from ever showing — even in dev where lazy modules load as a
-  // waterfall of individual HTTP requests.
-  const [, startSelectTransition] = useTransition();
 
   const {
     coffees,
@@ -87,16 +78,11 @@ function HomePage() {
     })),
   );
 
-  // Wrap the selection in a transition so React silently renders CoffeeDetail
-  // in the background and only swaps once it's ready, keeping the list
-  // visible instead of flashing the Suspense fallback.
   const handleSelectCoffee = useCallback(
     (id: string) => {
-      startSelectTransition(() => {
-        setSelectedCoffee(id);
-      });
+      setSelectedCoffee(id);
     },
-    [setSelectedCoffee],
+    [setSelectedCoffee]
   );
 
   useEffect(() => {
@@ -193,14 +179,12 @@ function HomePage() {
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
-          <Suspense fallback={<PageLoadingFallback label="جاري فتح تفاصيل القهوة..." showSpinner={false} />}>
-            <CoffeeDetail
-              key={`detail-${selectedCoffeeId}`}
-              coffeeId={selectedCoffeeId}
-              coffee={selectedCoffee}
-              onBack={() => setSelectedCoffee(null)}
-            />
-          </Suspense>
+          <CoffeeDetail
+            key={`detail-${selectedCoffeeId}`}
+            coffeeId={selectedCoffeeId}
+            coffee={selectedCoffee}
+            onBack={() => setSelectedCoffee(null)}
+          />
         ) : (
           <motion.main
             key="home"
@@ -212,32 +196,40 @@ function HomePage() {
             <header className="mb-6 flex min-h-12 items-center justify-between gap-2 md:mb-8">
               <motion.div
                 className="flex min-w-24 items-stretch gap-1.5"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, delay: 0.05 }}
               >
                 <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
                   <div className="flex items-center gap-1">
                     <BookOpen size={11} className="text-accent" />
-                    <span className="font-display text-base font-bold text-accent md:text-xl">
-                      {coffees.length}
-                    </span>
+                    {isLoading && coffees.length === 0 ? (
+                      <div className="h-5 w-6 animate-pulse rounded bg-muted" />
+                    ) : (
+                      <span className="font-display text-base font-bold text-accent md:text-xl">
+                        {coffees.length}
+                      </span>
+                    )}
                   </div>
                   <span className="block text-[10px] text-muted-foreground">قهوة</span>
                 </div>
                 <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
-                  <span className="font-display text-base font-bold text-accent md:text-xl">
-                    {totalCups}
-                  </span>
+                  {isLoading && coffees.length === 0 ? (
+                    <div className="h-5 w-6 animate-pulse rounded bg-muted" />
+                  ) : (
+                    <span className="font-display text-base font-bold text-accent md:text-xl">
+                      {totalCups}
+                    </span>
+                  )}
                   <span className="block text-[10px] text-muted-foreground">فنجان</span>
                 </div>
               </motion.div>
 
               <motion.h1
                 className="font-display text-lg font-semibold text-foreground md:text-2xl"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, delay: 0.05 }}
               >
                 دفتر القهوة
               </motion.h1>
@@ -246,9 +238,9 @@ function HomePage() {
                 <ThemeToggle />
                 <motion.div
                   className="flex items-center"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
                 >
                   <SignedOut>
                     <Link
@@ -294,9 +286,9 @@ function HomePage() {
 
             <motion.div
               className="mb-8 flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-ring/50 md:mb-10 md:px-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
             >
               <Search size={18} className="shrink-0 text-muted-foreground" />
               <Input
@@ -320,63 +312,60 @@ function HomePage() {
 
             <SignedIn>
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence>
-                  {isLoading && coffees.length === 0 ? (
-                    <motion.div
-                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                {isLoading && coffees.length === 0 ? (
+                  <>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <CoffeeCardSkeleton key={i} />
+                    ))}
+                  </>
+                ) : coffees.length === 0 && !searchQuery ? (
+                  <motion.div
+                    className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="mx-auto mb-4 inline-flex size-20 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30">
+                      <CoffeeIcon size={38} />
+                    </div>
+                    <h2 className="font-display text-2xl font-semibold text-foreground">
+                      ابدأ رحلتك
+                    </h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      أضف أول قهوة لك وابدأ بتتبع تجاربك
+                    </p>
+                    <Button
+                      type="button"
+                      className="mt-4"
+                      onClick={() => setShowAddCoffee(true)}
                     >
-                      <Loader2 size={46} className="mx-auto animate-spin text-accent" />
-                      <p className="mt-3 text-sm text-muted-foreground">جاري التحميل...</p>
-                    </motion.div>
-                  ) : coffees.length === 0 && !searchQuery ? (
-                    <motion.div
-                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                    >
-                      <div className="mx-auto mb-4 inline-flex size-20 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/30">
-                        <CoffeeIcon size={38} />
-                      </div>
-                      <h2 className="font-display text-2xl font-semibold text-foreground">
-                        ابدأ رحلتك
-                      </h2>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        أضف أول قهوة لك وابدأ بتتبع تجاربك
-                      </p>
-                      <Button
-                        type="button"
-                        className="mt-4"
-                        onClick={() => setShowAddCoffee(true)}
-                      >
-                        <Plus size={18} />
-                        إضافة قهوة جديدة
-                      </Button>
-                    </motion.div>
-                  ) : coffees.length === 0 ? (
-                    <motion.div
-                      className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <Search size={40} className="mx-auto text-muted-foreground" />
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        لم نجد نتائج لـ "{searchQuery}"
-                      </p>
-                    </motion.div>
-                  ) : (
-                    coffees.map((coffee, index) => (
-                      <CoffeeCard
-                        key={coffee.id}
-                        coffee={coffee}
-                        index={index}
-                        onSelect={handleSelectCoffee}
-                        onPrefetch={prefetchCoffeeById}
-                      />
-                    ))
-                  )}
-                </AnimatePresence>
+                      <Plus size={18} />
+                      إضافة قهوة جديدة
+                    </Button>
+                  </motion.div>
+                ) : coffees.length === 0 ? (
+                  <motion.div
+                    className="col-span-full rounded-xl border border-border bg-card p-8 text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Search size={40} className="mx-auto text-muted-foreground" />
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      لم نجد نتائج لـ "{searchQuery}"
+                    </p>
+                  </motion.div>
+                ) : (
+                  coffees.map((coffee, index) => (
+                    <CoffeeCard
+                      key={coffee.id}
+                      coffee={coffee}
+                      index={index}
+                      onSelect={handleSelectCoffee}
+                      onPrefetch={prefetchCoffeeById}
+                    />
+                  ))
+                )}
               </section>
 
               {coffees.length > 0 ? (
