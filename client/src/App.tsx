@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -18,6 +18,7 @@ import {
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CoffeeCard } from "./components/CoffeeCard";
+import { CoffeeDetail } from "./components/CoffeeDetail";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useCoffeeStore } from "./store/coffeeStore";
 import { Button } from "./components/ui/button";
@@ -40,26 +41,15 @@ const SignUpPage = lazy(async () => {
   return { default: module.SignUpPage };
 });
 
-// Start downloading these chunks immediately when the main bundle is parsed —
-// before auth resolves and before any effects fire. By the time the user can
-// see and tap the list, the JS is already in the browser cache.
-const coffeeDetailModulePromise = import("./components/CoffeeDetail");
+// Keep the add-cup modal split out of the initial bundle because it is only
+// needed from within CoffeeDetail after the user enters that screen.
 void import("./components/AddCupForm");
-
-const CoffeeDetail = lazy(() =>
-  coffeeDetailModulePromise.then((m) => ({ default: m.CoffeeDetail })),
-);
 
 function HomePage() {
   const [showAddCoffee, setShowAddCoffee] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const hasMountedSearch = useRef(false);
   const { isLoaded, isSignedIn, userId } = useAuth();
-  // useTransition keeps the current UI (list) visible while React silently
-  // prepares CoffeeDetail in the background. This prevents the Suspense
-  // fallback from ever showing — even in dev where lazy modules load as a
-  // waterfall of individual HTTP requests.
-  const [, startSelectTransition] = useTransition();
 
   const {
     coffees,
@@ -87,16 +77,11 @@ function HomePage() {
     })),
   );
 
-  // Wrap the selection in a transition so React silently renders CoffeeDetail
-  // in the background and only swaps once it's ready, keeping the list
-  // visible instead of flashing the Suspense fallback.
   const handleSelectCoffee = useCallback(
     (id: string) => {
-      startSelectTransition(() => {
-        setSelectedCoffee(id);
-      });
+      setSelectedCoffee(id);
     },
-    [setSelectedCoffee],
+    [setSelectedCoffee]
   );
 
   useEffect(() => {
@@ -193,14 +178,12 @@ function HomePage() {
 
       <AnimatePresence mode="wait">
         {selectedCoffeeId ? (
-          <Suspense fallback={<PageLoadingFallback label="جاري فتح تفاصيل القهوة..." showSpinner={false} />}>
-            <CoffeeDetail
-              key={`detail-${selectedCoffeeId}`}
-              coffeeId={selectedCoffeeId}
-              coffee={selectedCoffee}
-              onBack={() => setSelectedCoffee(null)}
-            />
-          </Suspense>
+          <CoffeeDetail
+            key={`detail-${selectedCoffeeId}`}
+            coffeeId={selectedCoffeeId}
+            coffee={selectedCoffee}
+            onBack={() => setSelectedCoffee(null)}
+          />
         ) : (
           <motion.main
             key="home"
