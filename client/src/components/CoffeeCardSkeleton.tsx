@@ -1,6 +1,6 @@
 export function CoffeeCardSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="relative min-h-[173px] overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {/* Roast color bar */}
       <div className="skeleton-glow h-1.5 w-full rounded-none" />
 
@@ -12,7 +12,7 @@ export function CoffeeCardSkeleton() {
         </div>
 
         {/* Roaster + origin rows */}
-        <div className="mb-3 flex flex-col gap-1.5 md:mb-4">
+        <div className="mb-3 flex min-h-[3.625rem] flex-col gap-1.5 md:mb-4">
           <div className="flex items-center gap-2">
             <div className="skeleton-glow skeleton-glow-soft size-[22px] shrink-0 rounded-full" />
             <div className="skeleton-glow skeleton-glow-soft h-4 w-28 rounded-md" />

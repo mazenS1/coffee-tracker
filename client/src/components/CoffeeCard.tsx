@@ -49,7 +49,7 @@ export const CoffeeCard = memo(function CoffeeCard({
   return (
     <motion.article
       className={cn(
-        "group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card",
+        "group relative min-h-[173px] cursor-pointer overflow-hidden rounded-xl border border-border bg-card",
         "shadow-sm transition-shadow hover:shadow-md",
       )}
       onClick={() => onSelect(coffee.id)}
@@ -92,7 +92,7 @@ export const CoffeeCard = memo(function CoffeeCard({
         </div>
 
         {/* Roaster + origin with icon pill containers */}
-        <div className="mb-3 flex flex-col gap-1.5 text-sm text-muted-foreground md:mb-4">
+        <div className="mb-3 flex min-h-[3.625rem] flex-col gap-1.5 text-sm text-muted-foreground md:mb-4">
           <span className="inline-flex items-center gap-2">
             <span
               className="flex size-[22px] shrink-0 items-center justify-center rounded-full text-white"
@@ -104,14 +104,18 @@ export const CoffeeCard = memo(function CoffeeCard({
               {coffee.roaster?.name || "محمصة غير محددة"}
             </span>
           </span>
-          {coffee.origin && (
-            <span className="inline-flex items-center gap-2">
-              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted text-sm leading-[0]">
-                {getOriginFlag(coffee.origin) ?? "🌍"}
-              </span>
-              <span>{coffee.origin}</span>
+          <span
+            className={cn(
+              "inline-flex items-center gap-2",
+              !coffee.origin && "pointer-events-none opacity-0",
+            )}
+            aria-hidden={!coffee.origin}
+          >
+            <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted text-sm leading-[0]">
+              {coffee.origin ? (getOriginFlag(coffee.origin) ?? "🌍") : "🌍"}
             </span>
-          )}
+            <span>{coffee.origin ?? "placeholder"}</span>
+          </span>
         </div>
 
         {/* Footer: cup count + star rating */}
@@ -129,9 +133,15 @@ export const CoffeeCard = memo(function CoffeeCard({
             <span className="text-xs text-muted-foreground">فنجان</span>
           </div>
 
-          {coffee.rating && coffee.rating > 0 && (
-            <StarRating rating={coffee.rating} size="sm" readonly />
-          )}
+          <div
+            className={cn(
+              "min-h-4 min-w-[5rem]",
+              !(coffee.rating && coffee.rating > 0) && "pointer-events-none opacity-0",
+            )}
+            aria-hidden={!(coffee.rating && coffee.rating > 0)}
+          >
+            <StarRating rating={coffee.rating && coffee.rating > 0 ? coffee.rating : 5} size="sm" readonly />
+          </div>
         </div>
       </div>
 
