@@ -204,7 +204,7 @@ function HomePage() {
                   <div className="flex items-center gap-1">
                     <BookOpen size={11} className="text-accent" />
                     {isLoading && coffees.length === 0 ? (
-                      <div className="h-5 w-6 animate-pulse rounded bg-muted" />
+                      <div className="skeleton-glow skeleton-glow-soft h-5 w-6 rounded" />
                     ) : (
                       <span className="font-display text-base font-bold text-accent md:text-xl">
                         {coffees.length}
@@ -215,7 +215,7 @@ function HomePage() {
                 </div>
                 <div className="flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-lg border border-border bg-card px-2.5 py-1 text-center md:min-h-[3rem] md:px-3">
                   {isLoading && coffees.length === 0 ? (
-                    <div className="h-5 w-6 animate-pulse rounded bg-muted" />
+                    <div className="skeleton-glow skeleton-glow-soft h-5 w-6 rounded" />
                   ) : (
                     <span className="font-display text-base font-bold text-accent md:text-xl">
                       {totalCups}
