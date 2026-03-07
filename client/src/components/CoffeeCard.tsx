@@ -80,14 +80,16 @@ export const CoffeeCard = memo(function CoffeeCard({
             {coffee.name || "قهوة بدون اسم"}
           </h3>
           <div
-            className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white md:text-xs"
+            className="inline-flex min-h-7 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold leading-none text-white md:text-xs"
             style={{
               background: `linear-gradient(135deg, ${roastColor}, ${roastColor}cc)`,
               boxShadow: `0 2px 8px ${roastColor}50`,
             }}
           >
-            <Flame size={11} />
-            {getRoastLevelLabel(coffee.roastLevel)}
+            <Flame size={11} className="shrink-0" />
+            <span className="inline-flex items-center leading-none">
+              {getRoastLevelLabel(coffee.roastLevel)}
+            </span>
           </div>
         </div>
 
@@ -106,15 +108,19 @@ export const CoffeeCard = memo(function CoffeeCard({
           </span>
           <span
             className={cn(
-              "inline-flex items-center gap-2",
+              "inline-flex min-h-[22px] items-center gap-2 leading-none",
               !coffee.origin && "pointer-events-none opacity-0",
             )}
             aria-hidden={!coffee.origin}
           >
-            <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted text-sm leading-[0]">
-              {coffee.origin ? (getOriginFlag(coffee.origin) ?? "🌍") : "🌍"}
+            <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted">
+              <span className="inline-flex -translate-y-px items-center justify-center text-[13px] leading-none">
+                {coffee.origin ? (getOriginFlag(coffee.origin) ?? "🌍") : "🌍"}
+              </span>
             </span>
-            <span>{coffee.origin ?? "placeholder"}</span>
+            <span className="inline-flex items-center leading-none">
+              {coffee.origin ?? "placeholder"}
+            </span>
           </span>
         </div>
 

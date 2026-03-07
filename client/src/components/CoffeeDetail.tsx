@@ -212,22 +212,28 @@ export function CoffeeDetail({ coffeeId, coffee, onBack }: CoffeeDetailProps) {
               {/* Origin badge + roast badge */}
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 {coffee.origin ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-secondary-foreground">
-                    <span className="text-base leading-[0]">
-                      {getOriginFlag(coffee.origin) ?? "🌍"}
+                  <span className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-semibold leading-none text-secondary-foreground">
+                    <span className="inline-flex size-5 items-center justify-center rounded-full bg-background/80">
+                      <span className="inline-flex -translate-y-px items-center justify-center text-[13px] leading-none">
+                        {getOriginFlag(coffee.origin) ?? "🌍"}
+                      </span>
                     </span>
-                    {coffee.origin}
+                    <span className="inline-flex items-center leading-none">
+                      {coffee.origin}
+                    </span>
                   </span>
                 ) : null}
                 <span
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-white"
+                  className="inline-flex min-h-8 items-center justify-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold leading-none text-white"
                   style={{
                     background: `linear-gradient(135deg, ${ROAST_COLORS[coffee.roastLevel]}, ${ROAST_COLORS[coffee.roastLevel]}cc)`,
                     boxShadow: `0 2px 8px ${ROAST_COLORS[coffee.roastLevel]}50`,
                   }}
                 >
-                  <Flame size={11} />
-                  {getRoastLevelLabel(coffee.roastLevel)}
+                  <Flame size={11} className="shrink-0" />
+                  <span className="inline-flex items-center leading-none">
+                    {getRoastLevelLabel(coffee.roastLevel)}
+                  </span>
                 </span>
               </div>
 
